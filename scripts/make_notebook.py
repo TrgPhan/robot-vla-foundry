@@ -19,8 +19,9 @@ cells = [
 Repository: https://github.com/TrgPhan/robot-vla-foundry
 
 Enable **Internet** and a **GPU** in Kaggle Settings. No Dataset upload or GitHub token is needed.
-The default is pretrained SmolVLA on one GPU with >=14 GiB VRAM. GR00T has a separate >=40 GB Linux recipe.
-Run the 20-update smoke experiment first; then use a fresh name for full training.
+The default is pretrained SmolVLA with automatic 1/2-GPU detection; select **GPU T4 x2** for DDP.
+Each GPU needs >=14 GiB VRAM. GR00T has a separate >=40 GB Linux recipe.
+Run the 20-step smoke experiment first; then use a fresh name for full training.
 This notebook is syntax-checked and its policy/data components are tested locally;
 full Kaggle training depends on the allocated hardware and network.
 """,
@@ -31,7 +32,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v1.1'  # Pinned release. Choose 'main' in a fresh directory for later changes.
+GIT_REF = 'kaggle-v2'  # T4 x2 DDP + FP16 release; use a fresh checkout for a different revision.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):
@@ -65,10 +66,14 @@ run([TRAIN_PY, '-m', 'robot_foundry.cli', 'doctor'])
         "markdown",
         """## Select the experiment
 
-SMOKE=True trains 20 optimizer updates. SMOKE=False uses the full 5,000-update recipe.
+SMOKE=True runs 20 steps. SMOKE=False uses the full 5,000-step recipe.
 FULL_DATA=True selects all public Object/Spatial episodes; the default caps at 10 episodes/task.
-Keep mode/backend/name/full-data options unchanged when resuming an interrupted run.
-T4/P100 use FP32; CUDA 11.8 wheels are pinned to retain older GPU support.
+Keep GPU count, precision, microbatch, workers and other options unchanged when resuming.
+T4/P100 use FP16 autocast + GradScaler. CUDA 11.8 wheels retain older GPU support.
+Two T4s use one process/GPU, disjoint samples and gradient synchronization after accumulation.
+Full training keeps effective batch 16: two GPUs x microbatch 1 x accumulation 8.
+Use `scripts/run_kaggle.py --mode benchmark --gpus 1` and `--gpus 2` in separate runs
+to compare the same effective batch; metrics.jsonl records throughput, per-GPU VRAM and AMP skips.
 """,
     ),
     cell(
@@ -77,14 +82,19 @@ T4/P100 use FP32; CUDA 11.8 wheels are pinned to retain older GPU support.
 SMOKE = True
 FULL_DATA = False
 RESUME = False
+GPUS = 'auto'  # '2' requires both T4s; '1' provides a single-GPU comparison.
+PRECISION = 'fp16'  # Use 'fp32' in a new run for an accuracy/performance comparison.
+MICROBATCH = 1  # Try 2 in a fresh smoke run if peak VRAM permits.
+WORKERS = 2  # Per GPU; use 0 to diagnose DataLoader issues.
 MODE = 'smoke' if SMOKE else 'full'
-RUN_NAME = f'kaggle_{BACKEND}_{MODE}'
+RUN_NAME = f'kaggle_{BACKEND}_{MODE}_{GPUS}gpu_{PRECISION}'
 print(BACKEND, MODE, RUN_NAME, 'all data:', FULL_DATA)
 """,
     ),
     cell(
         "code",
-        """training = [TRAIN_PY, 'scripts/run_kaggle.py', '--backend', BACKEND, '--mode', MODE, '--name', RUN_NAME]
+        """training = [TRAIN_PY, 'scripts/run_kaggle.py', '--backend', BACKEND, '--mode', MODE, '--name', RUN_NAME,
+            '--gpus', GPUS, '--precision', PRECISION, '--microbatch', MICROBATCH, '--workers', WORKERS]
 if FULL_DATA:
     training += ['--full-data']
 if RESUME:
@@ -116,7 +126,7 @@ if RUN_SIMULATION:
 if RUN_SIMULATION and BACKEND == 'smolvla':
     server_log = open('outputs/policy_server.log', 'w')
     server = subprocess.Popen([str(TRAIN_PY), 'scripts/policy_server.py', '--checkpoint', str(checkpoint),
-                               '--backend', 'smolvla', '--port', '8765'], cwd=PROJECT,
+                               '--backend', 'smolvla', '--precision', PRECISION, '--port', '8765'], cwd=PROJECT,
                               stdout=server_log, stderr=subprocess.STDOUT)
     try:
         run([TRAIN_PY, 'scripts/wait_policy_server.py', '--port', '8765'])

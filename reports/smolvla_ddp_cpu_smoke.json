@@ -1,0 +1,60 @@
+{
+  "hardware": "Windows; two CPU processes; Gloo/FileStore",
+  "scope": "real pretrained SmolVLA; FP32 master weights; 96px/H16; two optimizer steps; six real LIBERO episodes in smoke subset; two validation/test samples; not a convergence benchmark or T4 measurement",
+  "ddp_find_unused_parameters": false,
+  "report": {
+    "backend": "smolvla",
+    "engine": "ddp_amp_v2",
+    "world_size": 2,
+    "precision": "fp32",
+    "effective_batch": 2,
+    "steps": 2,
+    "optimizer_updates": 2,
+    "amp_skipped_updates": 0,
+    "validation_best_rmse": 1.4532639435533332,
+    "test": {
+      "normalized_rmse": 1.6337509286082792,
+      "mean_action_baseline_normalized_rmse": 0.8201422394845969,
+      "raw_mae_per_dimension": [
+        0.12084110715871033,
+        0.09804138296462744,
+        1.449582822152344,
+        0.01679390569331408,
+        0.0850165131255147,
+        0.06825474254177324,
+        0.8890523129484832
+      ],
+      "first_action_normalized_rmse": 1.3940757581980072,
+      "first_action_raw_mae_per_dimension": [
+        0.06274636120571353,
+        0.09145186386424253,
+        0.718898400963397,
+        0.018394966399581696,
+        0.11548415120374855,
+        0.06587076832543737,
+        0.894806042985552
+      ],
+      "evaluated_samples": 2,
+      "batches_across_ranks": 2,
+      "sample_cap": 2,
+      "precision": "fp32",
+      "metric_scope": "held-out open-loop demonstrations; not rollout success or balance"
+    },
+    "selected_by": "validation normalized RMSE",
+    "wall_seconds_this_invocation": 33.17021090001799,
+    "trainable_parameters": 99880992,
+    "peak_cuda_memory_mib_by_rank": [
+      null,
+      null
+    ],
+    "parameter_digests_by_rank": [
+      "083776144475c726152c0bd79a0e8e332567d8bc0ccabe8303fb66e3f63432ff",
+      "083776144475c726152c0bd79a0e8e332567d8bc0ccabe8303fb66e3f63432ff"
+    ],
+    "training_parameter_digests_by_rank": [
+      "4a756525a8297b02491eebaac7d21a4d3e59438b05ae1ca104b7d1b3a740bf24",
+      "4a756525a8297b02491eebaac7d21a4d3e59438b05ae1ca104b7d1b3a740bf24"
+    ],
+    "data_fingerprint": "205b72ba4a387fbab5440eca6a0eb335e83ced181b6bafe6244abdfa2cb0a60f"
+  }
+}

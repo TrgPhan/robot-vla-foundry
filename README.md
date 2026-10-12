@@ -2,7 +2,7 @@
 
 Project nghiên cứu cho tác vụ **gắp vật và đặt vào giỏ**, ưu tiên Kaggle và simulation theo lựa chọn của bạn. Mã nguồn dùng cấu trúc `src/`, `pyproject.toml`, cấu hình JSON, checkpoint có provenance và kiểm thử tự động. Đây là các quy ước tổ chức project Python; project chưa có chứng nhận ISO hoặc kiểm định triển khai robot thực.
 
-**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + GPU và chạy các cell. Notebook tự clone release `kaggle-v1.1`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell: [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 ## Quyết định kiến trúc
 
@@ -26,9 +26,11 @@ Xem các báo cáo máy đọc được trong [`reports/`](reports/).
 | Peak VRAM trong lượt train | khoảng 91,5 MiB |
 | LIBERO Object smoke | 0/10, 1 trạng thái khởi đầu/task, 100 bước |
 | SmolVLA pretrained | 1 bước optimizer trên CPU; finite loss; padding mask; export/reload; action `[1,16,7]` |
-| Kiểm thử | 12 test pass; gồm resume trùng chính xác trajectory optimizer trên CPU |
+| SmolVLA v2 | 2 bước DDP trên hai process CPU, trọng số khớp; 1 bước FP16 GPU local ở 96 px/H16, peak 3.143 MiB |
+| DDP/AMP | Hai process Gloo đồng bộ trọng số; resume chính xác sau khi ngắt; FP16 optimizer + GradScaler trên GPU local |
+| Kiểm thử v2 | 20 test pass local; có xử lý overflow và đối chiếu metric DDP với một process |
 
-RMSE không phải success rate. Kết quả simulation của TinyBC chưa đạt yêu cầu thực hiện tác vụ. SmolVLA mới được kiểm tra tích hợp một bước; chưa có kết quả convergence hoặc full benchmark. GR00T/SONIC chưa được train do thiếu GPU/dữ liệu phù hợp. Notebook Kaggle đã kiểm tra cú pháp và các thành phần local, chưa thực thi toàn bộ trong tài khoản Kaggle.
+RMSE không phải success rate. Kết quả simulation của TinyBC chưa đạt yêu cầu thực hiện tác vụ. SmolVLA mới được kiểm tra tích hợp vài bước; chưa có kết quả convergence hoặc full benchmark. Các smoke mới ở [`reports/smolvla_ddp_cpu_smoke.json`](reports/smolvla_ddp_cpu_smoke.json) và [`reports/smolvla_fp16_local_smoke.json`](reports/smolvla_fp16_local_smoke.json) dùng 96 px/H16; không đại diện tốc độ/VRAM của recipe T4 256 px/H50. GR00T/SONIC chưa được train do thiếu GPU/dữ liệu phù hợp. Notebook Kaggle đã kiểm tra cú pháp và các thành phần local, chưa thực thi toàn bộ trong tài khoản Kaggle.
 
 ## Cấu trúc
 
@@ -65,11 +67,13 @@ Local chuẩn hóa bằng thống kê **chỉ từ train**, video lấy theo PTS
 ## Chạy Kaggle
 
 1. Tải/import [`notebooks/kaggle_train.ipynb`](https://github.com/TrgPhan/robot-vla-foundry/blob/main/notebooks/kaggle_train.ipynb) vào một Kaggle Notebook.
-2. Bật Internet và GPU; cell đầu tự clone repo public vào `/kaggle/working/robot-vla-foundry`.
-3. Chạy `SMOKE=True` trước, sau đó dùng `SMOKE=False` và một output directory mới. Đặt `FULL_DATA=True` cho run chính.
+2. Bật Internet và **GPU T4 ×2**; cell đầu tự clone repo public vào `/kaggle/working/robot-vla-foundry`.
+3. Chạy `SMOKE=True` trước, sau đó dùng `SMOKE=False` và một output directory mới. Giữ `FULL_DATA=False` cho lượt đầu; bật `True` khi đã kiểm tra đủ disk và thời gian chuẩn bị toàn bộ dữ liệu.
 4. Giữ và tải `robot_foundry_results.zip` trong Kaggle Output sau mỗi phiên. Checkpoint chứa model, optimizer, scheduler và RNG để resume. Để resume ở phiên mới, bật `SAVE_RESUME_DATA=True` để lưu cả prepared data, rồi restore hai ZIP vào thư mục project. Mỗi experiment có prepared manifest và output riêng.
 
-Notebook tạo Python 3.12 riêng, PyTorch CUDA 11.8 mặc định, LeRobot khóa commit, stats train-only và microbatch/gradient accumulation. SmolVLA giữ VLM frozen và train action expert/state projection. Recipe hiện chạy FP32, phù hợp T4/P100 về dtype; cần kiểm tra peak VRAM thực tế bằng smoke run. CUDA wheel được chọn riêng với `--torch-index` để tránh thiếu kernel cho GPU cũ. Nếu OOM, dùng `tiny_bc`, giảm camera/resolution bằng một recipe và tập dữ liệu mới, hoặc chuyển GPU lớn hơn; không đổi schema âm thầm trong checkpoint cũ. [Các wheel PyTorch chính thức](https://pytorch.org/get-started/previous-versions/).
+Notebook tạo Python 3.12 riêng, PyTorch CUDA 11.8 mặc định, LeRobot khóa commit và stats train-only. Recipe `kaggle_t4x2.json` dùng DDP một process/GPU, FP16 autocast + GradScaler, fused AdamW và prefetch dữ liệu. Full training giữ effective batch **16 = 2 GPU × microbatch 1 × accumulation 8**; một GPU dùng accumulation 16. SmolVLA giữ VLM frozen và train action expert/state projection. Cache PNG lossless đọc đúng frame cần dùng, tránh giải nén toàn episode cho từng sample; cần thêm disk cho cache. Checkpoint lưu RNG từng rank và scaler; validation/test được chia không trùng sample. [DDP PyTorch](https://docs.pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html), [AMP PyTorch](https://docs.pytorch.org/docs/2.7/amp.html).
+
+Smoke ghi throughput và peak VRAM từng GPU. Chỉ tăng `MICROBATCH=2` sau khi smoke mới xác nhận đủ VRAM; full recipe tự giảm accumulation để giữ batch 16. Dùng `--mode benchmark --gpus 1` và `--gpus 2` với tên khác nhau để đo tốc độ trên cùng effective batch. Tốc độ T4 ×2 chưa được đo trên Kaggle; không suy ra mức tăng 2×. CUDA wheel được chọn riêng với `--torch-index`; nếu OOM với microbatch 1, chuyển GPU lớn hơn hoặc tạo recipe/dataset mới có resolution thấp hơn. [Các wheel PyTorch chính thức](https://pytorch.org/get-started/previous-versions/).
 
 Không giả định tài khoản Kaggle luôn được cấp cùng GPU hay thời lượng. Script `doctor` kiểm tra thiết bị thật. Profile GR00T ở đây yêu cầu Linux, Python 3.12 và khoảng 40 GB VRAM mỗi GPU theo hướng dẫn reference; DDP không cộng VRAM của hai T4. [Hardware guide NVIDIA](https://github.com/NVIDIA/Isaac-GR00T/blob/main/getting_started/hardware_recommendation.md).
 

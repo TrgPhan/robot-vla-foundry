@@ -106,6 +106,10 @@ def atomic_checkpoint(path, value):
 
 def train(config_path, resume=False):
     cfg = read_json(config_path)
+    if cfg.get("training_engine") == "ddp_amp_v2":
+        from .train_optimized import train as optimized_train
+
+        return optimized_train(config_path, resume)
     seed_everything(cfg["seed"])
     if cfg["steps"] <= 0 or cfg["batch_size"] <= 0 or cfg["warmup_steps"] >= cfg["steps"]:
         raise ValueError("Need positive steps/batch and warmup_steps < steps.")

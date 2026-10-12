@@ -14,3 +14,14 @@
 - Git release notebook clones the public repository and delegates training to `scripts/run_kaggle.py`. Each experiment keeps its own prepared manifest, run config, source commit and checkpoint. Full remote Kaggle execution is still unmeasured.
 
 Full VLA convergence, benchmark success, humanoid dynamics and sim-to-real performance remain unmeasured.
+
+T4 ×2 release (`kaggle-v2`):
+
+- Actual two-process Gloo/DDP training passed locally: both ranks have identical final parameters; five validation samples are counted once despite uneven sharding; interruption/resume reproduces the uninterrupted weights exactly with worker prefetch enabled.
+- Actual pretrained SmolVLA trained two steps on two CPU processes with unused-parameter scanning disabled. Weight digests match both before best-checkpoint loading and after loading. See `smolvla_ddp_cpu_smoke.json`.
+- Actual pretrained SmolVLA FP16 trained one optimizer step on RTX A1000: finite validation/test predictions, zero AMP skips, peak allocation 3143.33 MiB. This diagnostic used 96px/H16 and explicitly bypassed the production >=14 GiB guard within the temporary test process; it does not measure the production 256px/H50 recipe. See `smolvla_fp16_local_smoke.json`.
+- FP16 autocast, gradient accumulation, fused AdamW and GradScaler checkpoint passed on the single local CUDA GPU using TinyBC. This does not measure SmolVLA memory on T4.
+- Injected gradient overflow is skipped, scale halves, and subsequent optimizer updates stay finite. Distributed evaluation agrees with single-process sufficient statistics within 1e-8.
+- Lossless packed cache returns exactly the same RGB, state, action, padding mask and language tokens as the original NPZ reader.
+- One/two-GPU full and benchmark recipes retain effective batch 16. Explicit two-GPU selection fails when only one GPU is present.
+- Notebook cells compile; production multi-GPU launcher uses Linux `torchrun`/NCCL. Actual T4 ×2 throughput, full SmolVLA convergence and full Kaggle notebook execution remain unmeasured.

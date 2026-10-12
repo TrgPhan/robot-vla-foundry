@@ -23,7 +23,10 @@ class TinyBackend:
         self.velocity_weight = cfg.get("velocity_weight", 0.05)
 
     def process(self, batch):
-        return {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()}
+        return {
+            k: v.to(self.device, non_blocking=True) if isinstance(v, torch.Tensor) else v
+            for k, v in batch.items()
+        }
 
     def loss(self, batch):
         from .data import masked_loss
@@ -46,7 +49,10 @@ class SmolBackend:
         if device.type == "cpu" and cfg.get("cpu_smoke_only") and cfg.get("steps", 0) <= 2:
             pass  # Explicit one/two-step API validation, not a CPU training recommendation.
         elif device.type == "cuda":
-            require_gpu("smolvla")
+            require_gpu(
+                "smolvla",
+                device_ids=[device.index if device.index is not None else torch.cuda.current_device()],
+            )
         else:
             raise RuntimeError("Use a GPU for the SmolVLA training profile.")
         from huggingface_hub import snapshot_download
@@ -66,12 +72,15 @@ class SmolBackend:
         else:
             pretrained = base["repo_id"]
             policy_cfg = SmolVLAConfig.from_pretrained(pretrained, revision=base["revision"])
-            snapshot_download(
-                vlm["repo_id"],
-                revision=vlm["revision"],
-                ignore_patterns=["*.safetensors", "*.bin", "*.pt", "*.onnx"],
-                local_dir=str(self.assets),
-            )
+            asset_marker = self.assets / "foundry_revision.json"
+            if not asset_marker.exists() or read_json(asset_marker) != vlm:
+                snapshot_download(
+                    vlm["repo_id"],
+                    revision=vlm["revision"],
+                    ignore_patterns=["*.safetensors", "*.bin", "*.pt", "*.onnx"],
+                    local_dir=str(self.assets),
+                )
+                write_json(asset_marker, vlm)
         s = dataset.manifest["signature"]
         size = dataset.manifest["config"]["image_size"]
         horizon = dataset.manifest["config"]["horizon"]
@@ -94,7 +103,12 @@ class SmolBackend:
         policy_cfg.train_state_proj = True
         self.model = SmolVLAPolicy.from_pretrained(
             pretrained, config=policy_cfg, revision=None if load_path else base["revision"]
-        ).to(device)
+        )
+        if cfg.get("precision") in ["fp16", "fp32"]:
+            # FP32 master weights: the upstream VLM defaults to BF16, unsupported by T4 Tensor Cores.
+            # AMP casts eligible operations to FP16; trainable gradients stay FP32 for GradScaler.
+            self.model.float()
+        self.model.to(device)
         stats = {
             key: {k: torch.tensor(v) for k, v in values.items()}
             for key, values in read_json(dataset.root / "stats.json").items()
@@ -104,15 +118,16 @@ class SmolBackend:
         self.device = device
 
     def process(self, batch):
+        images = batch["images"].to(self.device, non_blocking=True).float() / 255
         raw = {
-            "observation.state": batch["state"],
-            "action": batch["action"],
+            "observation.state": batch["state"].to(self.device, non_blocking=True),
+            "action": batch["action"].to(self.device, non_blocking=True),
             "task": batch["prompt"],
-            "action_is_pad": ~batch["valid"],
+            "action_is_pad": ~batch["valid"].to(self.device, non_blocking=True),
         }
-        raw.update({key: batch["images"][:, i].float() / 255 for i, key in enumerate(self.cameras)})
+        raw.update({key: images[:, i] for i, key in enumerate(self.cameras)})
         processed = self.preprocessor(raw)
-        processed["valid"] = batch["valid"].to(self.device)
+        processed["valid"] = batch["valid"].to(self.device, non_blocking=True)
         return processed
 
     def loss(self, batch):

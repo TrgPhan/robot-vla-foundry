@@ -14,6 +14,7 @@ from .backends import SmolBackend
 from .data import tokenize
 from .io import file_hash, read_json, write_json
 from .model import TinyChunkPolicy
+from .precision import autocast
 from .train import seed_everything, to_device
 
 
@@ -41,7 +42,7 @@ def decode_libero_action(action):
 
 
 class CheckpointPredictor:
-    def __init__(self, checkpoint, backend, device="auto"):
+    def __init__(self, checkpoint, backend, device="auto", precision="auto"):
         self.root = Path(checkpoint).resolve()
         self.manifest = read_json(self.root / "data_manifest.json")
         if self.manifest["action_convention"] != "libero_osc_delta_xyz_axis_angle_gripper_open01":
@@ -52,6 +53,11 @@ class CheckpointPredictor:
         }
         self.device = to_device({"device": device})
         self.backend_name = backend
+        self.precision = (
+            ("fp16" if backend == "smolvla" and self.device.type == "cuda" else "fp32")
+            if precision == "auto"
+            else precision
+        )
         self.horizon = self.manifest["config"]["horizon"]
         self.image_size = self.manifest["config"]["image_size"]
         if backend == "tiny_bc":
@@ -60,7 +66,11 @@ class CheckpointPredictor:
             self.model.load_state_dict(ckpt["model"])
             self.model.eval()
         else:
-            cfg = {"output_dir": str(self.root.parent), "registry": "configs/datasets.json"}
+            cfg = {
+                "output_dir": str(self.root.parent),
+                "registry": "configs/datasets.json",
+                "precision": self.precision,
+            }
             dataset = SimpleNamespace(root=self.root, manifest=self.manifest)
             self.backend = SmolBackend(cfg, dataset, self.device, load_path=self.root)
             self.backend.model.eval()
@@ -104,7 +114,8 @@ class CheckpointPredictor:
                 {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in raw.items()}
             )
         else:
-            pred = self.backend.predict(self.backend.process(raw))
+            with autocast(self.device, self.precision):
+                pred = self.backend.predict(self.backend.process(raw))
         pred = pred[0].float().cpu().numpy()
         return pred * self.stats["action"]["std"] + self.stats["action"]["mean"]
 

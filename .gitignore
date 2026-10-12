@@ -14,4 +14,5 @@ dist/
 *.key
 research/
 configs/kaggle_runtime.json
+configs/*_runtime.json
 reports/github_identity.json

@@ -1,0 +1,60 @@
+{
+  "hardware": "RTX A1000 Laptop 4 GB",
+  "scope": "one GPU; low-resolution 96px/H16 diagnostic; not the 256px/H50 T4 recipe",
+  "report": {
+    "backend": "smolvla",
+    "engine": "ddp_amp_v2",
+    "world_size": 1,
+    "precision": "fp16",
+    "effective_batch": 1,
+    "steps": 1,
+    "optimizer_updates": 1,
+    "amp_skipped_updates": 0,
+    "validation_best_rmse": 1.4125184579306393,
+    "test": {
+      "normalized_rmse": 1.86236686415592,
+      "mean_action_baseline_normalized_rmse": 0.8201422394845967,
+      "raw_mae_per_dimension": [
+        0.6254184192125845,
+        0.4159275566252519,
+        0.5009087280476066,
+        0.037093414717541885,
+        0.1931983590690755,
+        0.10510333219289573,
+        0.24189354858651738
+      ],
+      "first_action_normalized_rmse": 2.146965432937374,
+      "first_action_raw_mae_per_dimension": [
+        0.507636952334888,
+        0.662632971600436,
+        0.5020747585435767,
+        0.014382931582471357,
+        0.27240949899790223,
+        0.06886705119303382,
+        0.23372939812595916
+      ],
+      "evaluated_samples": 2,
+      "batches_across_ranks": 2,
+      "sample_cap": 2,
+      "precision": "fp16",
+      "metric_scope": "held-out open-loop demonstrations; not rollout success or balance"
+    },
+    "selected_by": "validation normalized RMSE",
+    "wall_seconds_this_invocation": 11.398690599948168,
+    "trainable_parameters": 99880992,
+    "peak_cuda_memory_mib_by_rank": [
+      3143.333984375
+    ],
+    "parameter_digests_by_rank": null,
+    "training_parameter_digests_by_rank": null,
+    "data_fingerprint": "205b72ba4a387fbab5440eca6a0eb335e83ced181b6bafe6244abdfa2cb0a60f"
+  },
+  "reload_simulation_predictor": {
+    "precision": "fp16",
+    "shape": [
+      16,
+      7
+    ],
+    "finite": true
+  }
+}

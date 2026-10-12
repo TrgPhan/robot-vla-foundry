@@ -13,9 +13,10 @@ def main():
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--backend", choices=["tiny_bc", "smolvla"], default="smolvla")
     parser.add_argument("--device", default="auto")
+    parser.add_argument("--precision", choices=["auto", "fp16", "fp32"], default="auto")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    predictor = CheckpointPredictor(args.checkpoint, args.backend, args.device)
+    predictor = CheckpointPredictor(args.checkpoint, args.backend, args.device, args.precision)
 
     class Handler(BaseHTTPRequestHandler):
         def reply(self, code, payload):
@@ -34,6 +35,7 @@ def main():
                 {
                     "ready": True,
                     "backend": args.backend,
+                    "precision": predictor.precision,
                     "horizon": predictor.horizon,
                     "data_fingerprint": predictor.manifest["fingerprint"],
                 },

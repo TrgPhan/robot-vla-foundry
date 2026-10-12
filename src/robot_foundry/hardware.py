@@ -6,12 +6,12 @@ import subprocess
 import sys
 
 
-def probe():
+def probe(device_ids=None):
     import torch
 
     devices = []
     if torch.cuda.is_available():
-        for i in range(torch.cuda.device_count()):
+        for i in range(torch.cuda.device_count()) if device_ids is None else device_ids:
             prop = torch.cuda.get_device_properties(i)
             with torch.cuda.device(i):
                 free, total = torch.cuda.mem_get_info()
@@ -52,8 +52,8 @@ def probe():
     }
 
 
-def require_gpu(profile, num_gpus=1):
-    report = probe()
+def require_gpu(profile, num_gpus=1, device_ids=None):
+    report = probe(device_ids)
     minimum = {"groot": 39.0, "smolvla": 14.0}[profile]
     if len(report["gpus"]) < num_gpus or any(g["total_gib"] < minimum for g in report["gpus"][:num_gpus]):
         raise RuntimeError(

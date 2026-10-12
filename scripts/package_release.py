@@ -35,6 +35,7 @@ def main():
             and "__pycache__" not in p.parts
             and p.suffix not in [".pyc", ".pt", ".safetensors"]
             and p.name != "github_identity.json"
+            and not p.name.endswith("_runtime.json")
         )
     selected.extend(
         root / p for p in ["README.md", "LICENSE", "pyproject.toml", ".gitignore", ".gitattributes"]

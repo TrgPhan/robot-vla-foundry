@@ -22,7 +22,7 @@ def tokenize(prompt, length=40):
 
 
 class EpisodesDataset(Dataset):
-    def __init__(self, root, split, normalize=True, cache_size=2):
+    def __init__(self, root, split, normalize=True, cache_size=2, packed=False):
         self.root = Path(root)
         self.manifest = read_json(self.root / "manifest.json")
         self.records = [r for r in self.manifest["episodes"] if r["split"] == split]
@@ -31,6 +31,7 @@ class EpisodesDataset(Dataset):
         self.ends = np.cumsum([r["samples"] for r in self.records]).tolist()
         self.normalize = normalize
         self.cache_size = cache_size
+        self.packed = packed
         self.cache = OrderedDict()
         stats = read_json(self.root / "stats.json")
         self.state_mean = np.asarray(stats["observation.state"]["mean"], np.float32)
@@ -47,10 +48,15 @@ class EpisodesDataset(Dataset):
         episode_idx = bisect.bisect_right(self.ends, index)
         row = index - (self.ends[episode_idx - 1] if episode_idx else 0)
         if episode_idx not in self.cache:
-            with np.load(self.root / self.records[episode_idx]["path"], allow_pickle=False) as a:
-                self.cache[episode_idx] = {
-                    k: a[k] for k in ["images", "states", "actions", "valid", "prompts"]
-                }
+            if self.packed:
+                from .packed import open_episode
+
+                self.cache[episode_idx] = open_episode(self.root, self.records[episode_idx])
+            else:
+                with np.load(self.root / self.records[episode_idx]["path"], allow_pickle=False) as a:
+                    self.cache[episode_idx] = {
+                        k: a[k] for k in ["images", "states", "actions", "valid", "prompts"]
+                    }
             while len(self.cache) > self.cache_size:
                 self.cache.popitem(last=False)
         self.cache.move_to_end(episode_idx)
@@ -60,8 +66,14 @@ class EpisodesDataset(Dataset):
             state = (state - self.state_mean) / self.state_std
             action = (action - self.action_mean) / self.action_std
         prompt = str(a["prompts"][row])
+        if self.packed:
+            from .packed import image_row
+
+            images = image_row(a, row)
+        else:
+            images = a["images"][row].copy()
         return {
-            "images": torch.from_numpy(a["images"][row].copy()),
+            "images": torch.from_numpy(images),
             "state": torch.from_numpy(state.copy()),
             "action": torch.from_numpy(action.copy()),
             "valid": torch.from_numpy(a["valid"][row].copy()),
