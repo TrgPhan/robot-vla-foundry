@@ -1,0 +1,98 @@
+[
+  {
+    "key": "so100_pickplace",
+    "repo_id": "lerobot/svla_so100_pickplace",
+    "resolved_sha": "728583b5eaf9e739a7f119e2def466fa1d552402",
+    "gated": false,
+    "role": "separate SO100 real-robot track",
+    "license": "apache-2.0"
+  },
+  {
+    "key": "so100_sorting",
+    "repo_id": "lerobot/svla_so100_sorting",
+    "resolved_sha": "13870ca969084d8ce4d8a0391b06cead78e804ba",
+    "gated": false,
+    "role": "separate SO100 supplementary track",
+    "license": "apache-2.0"
+  },
+  {
+    "key": "so100_stacking",
+    "repo_id": "lerobot/svla_so100_stacking",
+    "resolved_sha": "933bcc61148b1b560d1a13753b47eac54a085561",
+    "gated": false,
+    "role": "separate SO100 supplementary track",
+    "license": "apache-2.0"
+  },
+  {
+    "key": "libero_v3",
+    "repo_id": "lerobot/libero",
+    "resolved_sha": "a1aaacb7f6cd6ee5fb43120f673cebb0cfea7dd4",
+    "gated": false,
+    "role": "alternative LIBERO conversion; do not mix action/FPS without conversion",
+    "license": "apache-2.0"
+  },
+  {
+    "key": "libero_object",
+    "repo_id": "IPEC-COMMUNITY/libero_object_no_noops_1.0.0_lerobot",
+    "resolved_sha": "15657dac2ad1c01b4e94bf54ab0493b46a8d63f9",
+    "gated": false,
+    "role": "primary manipulation training",
+    "license": null
+  },
+  {
+    "key": "libero_spatial",
+    "repo_id": "IPEC-COMMUNITY/libero_spatial_no_noops_1.0.0_lerobot",
+    "resolved_sha": "bf14d6258218d12c2e3c1a3b9922e163cdf6455d",
+    "gated": false,
+    "role": "same-embodiment supplementary manipulation",
+    "license": null
+  },
+  {
+    "key": "nvidia_gr1_sim",
+    "repo_id": "nvidia/PhysicalAI-Robotics-GR00T-X-Embodiment-Sim",
+    "resolved_sha": "ea7ac0b68f87da62f1e726771bba0fe74300802f",
+    "gated": false,
+    "role": "GR1 transfer research only; incompatible with G1 SONIC labels",
+    "license": "cc-by-4.0"
+  },
+  {
+    "key": "sonic",
+    "repo_id": "nvidia/GEAR-SONIC",
+    "resolved_sha": "6733128a3d8a523b1418b06bca3cdf61c8b0987f",
+    "gated": false,
+    "role": "frozen whole-body G1 controller",
+    "license": "other"
+  },
+  {
+    "key": "groot",
+    "repo_id": "nvidia/GR00T-N1.7-3B",
+    "resolved_sha": "2fc962b973bccdd5d8ce4f67cc63b264d6886495",
+    "gated": false,
+    "role": "foundation VLA",
+    "license": null
+  },
+  {
+    "key": "bones_seed",
+    "repo_id": "bones-studio/seed",
+    "resolved_sha": "2f59b2077b9da34dd4e43618e705c7cb962c9a66",
+    "gated": "auto",
+    "role": "motion prior only; gated, no robot RGB/actions",
+    "license": "other"
+  },
+  {
+    "key": "smolvla",
+    "repo_id": "lerobot/smolvla_base",
+    "resolved_sha": "5e8d12a6e2975b0e5e5fce7c8caf47c371d257b6",
+    "gated": false,
+    "role": "Kaggle VLA alternative",
+    "license": "apache-2.0"
+  },
+  {
+    "key": "smolvlm",
+    "repo_id": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+    "resolved_sha": "7b375e1b73b11138ff12fe22c8f2822d8fe03467",
+    "gated": false,
+    "role": "Kaggle VLA alternative",
+    "license": "apache-2.0"
+  }
+]

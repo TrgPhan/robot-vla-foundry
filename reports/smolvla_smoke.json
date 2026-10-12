@@ -1,0 +1,15 @@
+{
+  "pretrained_policy": "lerobot/smolvla_base",
+  "real_optimizer_steps": 1,
+  "device": "cpu",
+  "loss": 1.1507807970046997,
+  "gradient_norm": 39.718536376953125,
+  "prediction_shape": [
+    1,
+    16,
+    7
+  ],
+  "export_reload_passed": true,
+  "padding_mask_propagated": true,
+  "scope": "API integration smoke test; no performance claim"
+}

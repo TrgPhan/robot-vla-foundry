@@ -1,0 +1,16 @@
+{
+  "groot_repo": "vendor/groot",
+  "dataset_paths": ["data/g1_sonic/cleaned_train"],
+  "embodiment_tag": "UNITREE_G1_SONIC",
+  "output_dir": "outputs/groot_g1",
+  "model_cache": "data/models/groot",
+  "num_gpus": 1,
+  "global_batch_size": 4,
+  "gradient_accumulation_steps": 8,
+  "steps": 20000,
+  "save_steps": 1000,
+  "lr": 0.0001,
+  "num_workers": 2,
+  "num_shards_per_epoch": 8
+}
+

@@ -1,0 +1,132 @@
+{
+  "so100_pickplace": {
+    "repo_id": "lerobot/svla_so100_pickplace",
+    "revision": "728583b5eaf9e739a7f119e2def466fa1d552402",
+    "kind": "dataset",
+    "license": "apache-2.0",
+    "role": "separate SO100 real-robot track",
+    "action_convention": "so100_absolute_joint_driver_units_calibration_required",
+    "files": [
+      "meta/episodes/chunk-000/file-000.parquet",
+      "meta/info.json",
+      "meta/stats.json",
+      "meta/tasks.parquet"
+    ]
+  },
+  "so100_sorting": {
+    "repo_id": "lerobot/svla_so100_sorting",
+    "revision": "13870ca969084d8ce4d8a0391b06cead78e804ba",
+    "kind": "dataset",
+    "license": "apache-2.0",
+    "role": "separate SO100 supplementary track",
+    "action_convention": "so100_absolute_joint_driver_units_calibration_required",
+    "files": [
+      "meta/episodes/chunk-000/file-000.parquet",
+      "meta/info.json",
+      "meta/stats.json",
+      "meta/tasks.parquet"
+    ]
+  },
+  "so100_stacking": {
+    "repo_id": "lerobot/svla_so100_stacking",
+    "revision": "933bcc61148b1b560d1a13753b47eac54a085561",
+    "kind": "dataset",
+    "license": "apache-2.0",
+    "role": "separate SO100 supplementary track",
+    "action_convention": "so100_absolute_joint_driver_units_calibration_required",
+    "files": [
+      "meta/episodes/chunk-000/file-000.parquet",
+      "meta/info.json",
+      "meta/stats.json",
+      "meta/tasks.parquet"
+    ]
+  },
+  "libero_v3": {
+    "repo_id": "lerobot/libero",
+    "revision": "a1aaacb7f6cd6ee5fb43120f673cebb0cfea7dd4",
+    "kind": "dataset",
+    "license": "apache-2.0",
+    "role": "alternative LIBERO conversion; do not mix action/FPS without conversion",
+    "files": [
+      "meta/episodes/chunk-000/file-000.parquet",
+      "meta/info.json",
+      "meta/stats.json",
+      "meta/tasks.parquet"
+    ]
+  },
+  "libero_object": {
+    "repo_id": "IPEC-COMMUNITY/libero_object_no_noops_1.0.0_lerobot",
+    "revision": "15657dac2ad1c01b4e94bf54ab0493b46a8d63f9",
+    "kind": "dataset",
+    "license": null,
+    "role": "primary manipulation training",
+    "action_convention": "libero_osc_delta_xyz_axis_angle_gripper_open01",
+    "files": [
+      "meta/episodes.jsonl",
+      "meta/episodes_stats.jsonl",
+      "meta/info.json",
+      "meta/tasks.jsonl"
+    ]
+  },
+  "libero_spatial": {
+    "repo_id": "IPEC-COMMUNITY/libero_spatial_no_noops_1.0.0_lerobot",
+    "revision": "bf14d6258218d12c2e3c1a3b9922e163cdf6455d",
+    "kind": "dataset",
+    "license": null,
+    "role": "same-embodiment supplementary manipulation",
+    "action_convention": "libero_osc_delta_xyz_axis_angle_gripper_open01",
+    "files": [
+      "meta/episodes.jsonl",
+      "meta/episodes_stats.jsonl",
+      "meta/info.json",
+      "meta/tasks.jsonl"
+    ]
+  },
+  "nvidia_gr1_sim": {
+    "repo_id": "nvidia/PhysicalAI-Robotics-GR00T-X-Embodiment-Sim",
+    "revision": "ea7ac0b68f87da62f1e726771bba0fe74300802f",
+    "kind": "dataset",
+    "license": "cc-by-4.0",
+    "role": "GR1 transfer research only; incompatible with G1 SONIC labels",
+    "files": []
+  },
+  "sonic": {
+    "repo_id": "nvidia/GEAR-SONIC",
+    "revision": "6733128a3d8a523b1418b06bca3cdf61c8b0987f",
+    "kind": "model",
+    "license": "other",
+    "role": "frozen whole-body G1 controller"
+  },
+  "groot": {
+    "repo_id": "nvidia/GR00T-N1.7-3B",
+    "revision": "2fc962b973bccdd5d8ce4f67cc63b264d6886495",
+    "kind": "model",
+    "license": null,
+    "role": "foundation VLA"
+  },
+  "bones_seed": {
+    "repo_id": "bones-studio/seed",
+    "revision": "2f59b2077b9da34dd4e43618e705c7cb962c9a66",
+    "kind": "dataset",
+    "gated": "auto",
+    "license": "other",
+    "role": "motion prior only; gated, no robot RGB/actions",
+    "files": []
+  },
+  "smolvla": {
+    "repo_id": "lerobot/smolvla_base",
+    "revision": "5e8d12a6e2975b0e5e5fce7c8caf47c371d257b6",
+    "kind": "model",
+    "gated": false,
+    "license": "apache-2.0",
+    "role": "Kaggle VLA alternative"
+  },
+  "smolvlm": {
+    "repo_id": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+    "revision": "7b375e1b73b11138ff12fe22c8f2822d8fe03467",
+    "kind": "model",
+    "gated": false,
+    "license": "apache-2.0",
+    "role": "Kaggle VLA alternative"
+  }
+}

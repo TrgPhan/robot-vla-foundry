@@ -1,0 +1,18 @@
+{
+  "groot": {
+    "repo": "NVIDIA/Isaac-GR00T",
+    "sha": "d2b7e75b937e3ec9aa5dbc798f08b89692c49734"
+  },
+  "sonic": {
+    "repo": "NVlabs/GR00T-WholeBodyControl",
+    "sha": "b042411fae38ee4d1af9aac82a37a1f8d14d6dd0"
+  },
+  "lerobot": {
+    "repo": "huggingface/lerobot",
+    "sha": "b9cb121cb7d4e3e26ec5c906d08dda68d151ba52"
+  },
+  "openpi": {
+    "repo": "Physical-Intelligence/openpi",
+    "sha": "215abfb217dbac7d5f1273282331b9b1866c0479"
+  }
+}

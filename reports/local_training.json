@@ -1,0 +1,38 @@
+{
+  "backend": "tiny_bc",
+  "steps": 600,
+  "selected_by": "validation normalized RMSE",
+  "validation_best_rmse": 0.7983396053314209,
+  "test": {
+    "normalized_rmse": 0.7727890014648438,
+    "mean_action_baseline_normalized_rmse": 0.9894217660510375,
+    "raw_mae_per_dimension": [
+      0.17980670928955078,
+      0.16431677341461182,
+      0.2676779627799988,
+      0.018248427659273148,
+      0.037337157875299454,
+      0.03175334632396698,
+      0.21317020058631897
+    ],
+    "first_action_normalized_rmse": 0.7702276706695557,
+    "first_action_raw_mae_per_dimension": [
+      0.19779519736766815,
+      0.1836450695991516,
+      0.2632443606853485,
+      0.01834254153072834,
+      0.03774580359458923,
+      0.03124682419002056,
+      0.16781483590602875
+    ],
+    "evaluated_samples": 879,
+    "batches": 55,
+    "max_batches": null,
+    "metric_scope": "open-loop held-out demonstrations; not rollout success or humanoid balance"
+  },
+  "wall_seconds_this_invocation": 18.27075299998978,
+  "steps_this_invocation": 600,
+  "trainable_parameters": 907911,
+  "peak_cuda_memory_mib": 91.48583984375,
+  "data_fingerprint": "33d63c083dfce64be91d596dc516310cbd853fd18f0b7a376452315ad076490a"
+}

@@ -1,0 +1,33 @@
+{
+  "python": "3.12.10",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "torch": "2.7.1+cu118",
+  "torch_cuda": "11.8",
+  "driver": "512.36",
+  "gpus": [
+    {
+      "id": 0,
+      "name": "NVIDIA RTX A1000 Laptop GPU",
+      "total_gib": 3.99951171875,
+      "free_gib": 1.3533340450376272,
+      "capability": [
+        8,
+        6
+      ],
+      "bf16": true,
+      "kernel_error": null
+    }
+  ],
+  "compiled_cuda_arches": [
+    "sm_37",
+    "sm_50",
+    "sm_60",
+    "sm_61",
+    "sm_70",
+    "sm_75",
+    "sm_80",
+    "sm_86",
+    "sm_90",
+    "compute_37"
+  ]
+}

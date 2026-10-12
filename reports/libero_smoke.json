@@ -1,0 +1,119 @@
+{
+  "suite": "libero_object",
+  "backend": "tiny_bc",
+  "checkpoint_sha256": "a95bf0fee31a1835eac7685f3cef7fa124a746133a6db057ffe16933949c3b77",
+  "successes": 0,
+  "trials": 10,
+  "macro_success_rate": 0.0,
+  "wilson_95_descriptive_pooled": [
+    0.0,
+    0.2775327998628892
+  ],
+  "tasks": [
+    {
+      "task": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_salad_dressing_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_bbq_sauce_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_ketchup_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_tomato_sauce_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_butter_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_milk_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_chocolate_pudding_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    },
+    {
+      "task": "pick_up_the_orange_juice_and_place_it_in_the_basket",
+      "successes": 0,
+      "trials": 1,
+      "rate": 0.0,
+      "wilson_95": [
+        0.0,
+        0.7934506856227626
+      ]
+    }
+  ],
+  "max_steps": 100,
+  "execution_horizon": 4,
+  "seed": 42,
+  "note": "Pooled interval is descriptive; tasks are heterogeneous. No humanoid balance measured.",
+  "scope": "Smoke only: 1 initial state per task, 100 steps, not a full LIBERO benchmark"
+}

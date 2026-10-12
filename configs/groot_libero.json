@@ -1,0 +1,16 @@
+{
+  "groot_repo": "vendor/groot",
+  "export_manifest": "data/native/libero/export_manifest.json",
+  "embodiment_tag": "LIBERO_PANDA",
+  "output_dir": "outputs/groot_libero",
+  "model_cache": "data/models/groot",
+  "num_gpus": 1,
+  "global_batch_size": 4,
+  "gradient_accumulation_steps": 8,
+  "steps": 10000,
+  "save_steps": 1000,
+  "lr": 0.0001,
+  "num_workers": 2,
+  "num_shards_per_epoch": 8
+}
+

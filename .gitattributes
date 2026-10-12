@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.ipynb text eol=lf
+*.png binary
+*.mp4 binary
+*.pt binary
+*.safetensors binary
+

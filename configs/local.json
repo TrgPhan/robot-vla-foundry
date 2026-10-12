@@ -1,0 +1,24 @@
+{
+  "registry": "configs/datasets.json",
+  "datasets": ["libero_object", "libero_spatial"],
+  "raw_dir": "data/raw",
+  "prepared_dir": "data/prepared/local",
+  "episodes_per_task": 5,
+  "image_size": 96,
+  "stride": 3,
+  "horizon": 16,
+  "seed": 42,
+  "action_convention": "libero_osc_delta_xyz_axis_angle_gripper_open01",
+  "output_dir": "outputs/local_tiny_bc",
+  "backend": "tiny_bc",
+  "device": "auto",
+  "steps": 600,
+  "batch_size": 16,
+  "lr": 0.0003,
+  "eval_every": 100,
+  "warmup_steps": 50,
+  "velocity_weight": 0.05,
+  "num_workers": 0,
+  "cache_episodes": 128
+}
+
