@@ -184,5 +184,5 @@ for i, c in enumerate(cells):
     if c["cell_type"] == "code":
         compile("".join(c["source"]), f"cell_{i}", "exec")
 Path("notebooks").mkdir(exist_ok=True)
-Path("notebooks/kaggle_train.ipynb").write_text(json.dumps(notebook, indent=2), encoding="utf-8")
+Path("notebooks/kaggle_train.ipynb").write_text(json.dumps(notebook, indent=2) + "\n", encoding="utf-8")
 print("Wrote and syntax-checked Git-clone notebook: notebooks/kaggle_train.ipynb")

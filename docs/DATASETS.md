@@ -30,4 +30,3 @@ SO100 camera/joint ordering tương thích về schema giữa ba nguồn, nhưng
 Kiểm tra NaN/Inf, dimensions, frame index, FPS, độ dài episode, video PTS/coverage và action padding. Split whole episodes stratified theo task; mean/std chỉ từ train full frames. Mỗi prepared episode chứa hash file nguồn và manifest ghi revision/episode ID/cache digest.
 
 Split hiện tại ở cấp episode. Nếu source có nhiều episode gần trùng nhau, hoặc session/object IDs có sẵn, chuyển sang split nhóm session/object để đánh giá tổng quát hóa chặt hơn. Recipe hiện chưa có thông tin session đủ để chứng minh session-disjoint.
-

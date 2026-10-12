@@ -121,4 +121,3 @@ Xem [`docs/DESIGN.md`](docs/DESIGN.md). Có `configs/groot_g1.json`, `validate-g
 ## Mã nguồn và dữ liệu
 
 Mã mới của project theo MIT. Upstream, pretrained weights và dataset giữ license của từng nguồn. Registry ghi `null` khi dataset card không công bố license; không tự gán license cho bản chuyển đổi đó. Source archive không đóng gói lại dataset hay model NVIDIA. Xem [`docs/DATASETS.md`](docs/DATASETS.md).
-

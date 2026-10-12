@@ -30,4 +30,3 @@ jobs:
         run: python -m pytest -q
       - name: Notebook code validation
         run: python scripts/make_notebook.py
-

@@ -54,4 +54,3 @@ SONIC motion tracking: success không early termination; local/global MPJPE; joi
 Task humanoid: báo cáo cả **manipulation success và fall-free success**; time-to-completion, base roll/pitch p95/max, foot slip, wrist error, joint/torque-limit events, dropped object và payload. Define fall/contact thresholds và simulator robot/object model trước test. Thử standing reach trước, sau đó payload và perturbations. MPJPE tốt trên mocap không chứng minh gắp vật tốt hoặc sim-to-real an toàn.
 
 Project hiện chưa tạo benchmark object-interaction G1/Isaac Lab riêng, chưa có dữ liệu train G1 và chưa đo các metric này. Các cấu hình SONIC/G1 là đường tích hợp với upstream, cần dữ liệu và tài nguyên phù hợp.
-

@@ -14,4 +14,3 @@
 - Git release notebook clones the public repository and delegates training to `scripts/run_kaggle.py`. Each experiment keeps its own prepared manifest, run config, source commit and checkpoint. Full remote Kaggle execution is still unmeasured.
 
 Full VLA convergence, benchmark success, humanoid dynamics and sim-to-real performance remain unmeasured.
-

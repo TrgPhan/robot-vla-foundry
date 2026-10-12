@@ -12,4 +12,3 @@ Pillow==11.3.0
 pyarrow==21.0.0
 av==15.1.0
 huggingface-hub>=1.6,<2
-

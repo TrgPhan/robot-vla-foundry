@@ -73,4 +73,3 @@ Validator yêu cầu các modality G1, ego camera, 50 Hz, motion token 64 chiề
 Measure latency p50/p95, execution horizon, camera staleness và action limits cùng success. Humanoid cần thử stand/reach, payload, disturbance và locomotion theo mức tăng dần trong simulation; giữ joint order/frame conventions và controller identity cố định. Các threshold và object physics phải được công bố trước test, không chỉnh để tạo một success rate đẹp.
 
 Tất cả đề xuất cải thiện trên là kế hoạch experiment; chưa có evidence để cam kết success rate hay “performance tốt nhất”.
-

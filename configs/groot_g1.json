@@ -13,4 +13,3 @@
   "num_workers": 2,
   "num_shards_per_epoch": 8
 }
-

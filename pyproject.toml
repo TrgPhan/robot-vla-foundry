@@ -25,4 +25,3 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 110
 target-version = "py311"
-

@@ -99,4 +99,3 @@ Lưu hai file trong Kaggle Output trước khi kết thúc phiên. `training_sta
 Notebook có các cell riêng: đổi `RUN_SIMULATION=True` để chạy LIBERO với môi trường NumPy 1.26 tách biệt. SmolVLA được phục vụ qua localhost HTTP từ môi trường train. Mặc định simulation tắt để `Run All` ưu tiên train. Metric open-loop không phải tỷ lệ thành công; protocol benchmark ở [`BENCHMARK.md`](BENCHMARK.md).
 
 GR00T N1.7 + SONIC vẫn là nhánh riêng, cần GPU lớn và paired G1 data; notebook Kaggle này không giả lập một model GR00T khi đang dùng SmolVLA.
-

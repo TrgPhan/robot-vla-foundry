@@ -17,15 +17,28 @@ def main():
     dist.mkdir(exist_ok=True)
     source = dist / "robot_foundry_source.zip"
     selected = []
-    for folder in ["src", "configs", "scripts", "tests", "requirements", "notebooks", "docs", "reports"]:
+    for folder in [
+        ".github",
+        "src",
+        "configs",
+        "scripts",
+        "tests",
+        "requirements",
+        "notebooks",
+        "docs",
+        "reports",
+    ]:
         selected.extend(
             p
             for p in (root / folder).rglob("*")
             if p.is_file()
             and "__pycache__" not in p.parts
             and p.suffix not in [".pyc", ".pt", ".safetensors"]
+            and p.name != "github_identity.json"
         )
-    selected.extend(root / p for p in ["README.md", "LICENSE", "pyproject.toml", ".gitignore"])
+    selected.extend(
+        root / p for p in ["README.md", "LICENSE", "pyproject.toml", ".gitignore", ".gitattributes"]
+    )
     with zipfile.ZipFile(source, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(selected):
             if path.is_symlink():
