@@ -32,7 +32,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v2'  # T4 x2 DDP + FP16 release; use a fresh checkout for a different revision.
+GIT_REF = 'kaggle-v2.1'  # Compact data + guarded/transactional exports; update existing v2 runs via docs/KAGGLE.md.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):
@@ -74,6 +74,8 @@ Two T4s use one process/GPU, disjoint samples and gradient synchronization after
 Full training keeps effective batch 16: two GPUs x microbatch 1 x accumulation 8.
 Use `scripts/run_kaggle.py --mode benchmark --gpus 1` and `--gpus 2` in separate runs
 to compare the same effective batch; metrics.jsonl records throughput, per-GPU VRAM and AMP skips.
+Prepared NPZ duplicates are verified against packed RGB/labels and removed episode by episode.
+Training requires at least 6 GiB free disk after staging SmolVLA; disk and VRAM are separate budgets.
 """,
     ),
     cell(
@@ -87,7 +89,7 @@ PRECISION = 'fp16'  # Use 'fp32' in a new run for an accuracy/performance compar
 MICROBATCH = 1  # Try 2 in a fresh smoke run if peak VRAM permits.
 WORKERS = 2  # Per GPU; use 0 to diagnose DataLoader issues.
 MODE = 'smoke' if SMOKE else 'full'
-RUN_NAME = f'kaggle_{BACKEND}_{MODE}_{GPUS}gpu_{PRECISION}'
+RUN_NAME = f'kaggle_{BACKEND}_{MODE}_{GPUS}gpu_{PRECISION}_mb{MICROBATCH}'
 print(BACKEND, MODE, RUN_NAME, 'all data:', FULL_DATA)
 """,
     ),
@@ -163,19 +165,24 @@ if RUN_SIMULATION:
         "markdown",
         """## Save results
 
-Download robot_foundry_results.zip from Kaggle Output before ending the session.
-For resume in a new session, also save the prepared data archive and restore both
-archives into PROJECT. Set RESUME=True with exactly the original experiment options.
+Save the run directory in Kaggle Output before ending the session. ZIP creation is optional
+because it duplicates checkpoint/data storage. Each archive contains only the selected run.
+For resume in a new session, retain both outputs/RUN_NAME and its data/prepared directory.
+Set RESUME=True with exactly the original experiment options. Archives check free disk first.
 """,
     ),
     cell(
         "code",
-        """shutil.make_archive('/kaggle/working/robot_foundry_results', 'zip', root_dir=PROJECT, base_dir='outputs')
-print('/kaggle/working/robot_foundry_results.zip')
+        """SAVE_RESULTS_ZIP = False
 SAVE_RESUME_DATA = False
-if SAVE_RESUME_DATA:
-    shutil.make_archive('/kaggle/working/robot_foundry_prepared', 'zip', root_dir=PROJECT, base_dir='data/prepared')
-    print('/kaggle/working/robot_foundry_prepared.zip')
+print('Free disk GiB:', shutil.disk_usage('/kaggle/working').free / 2**30)
+print('Keep:', PROJECT / config['output_dir'], PROJECT / config['prepared_dir'])
+if SAVE_RESULTS_ZIP or SAVE_RESUME_DATA:
+    archive = [TRAIN_PY, 'scripts/archive_kaggle.py', '--run', RUN_NAME,
+               '--destination', '/kaggle/working']
+    if SAVE_RESUME_DATA:
+        archive += ['--include-prepared']
+    run(archive)
 """,
     ),
 ]

@@ -15,6 +15,7 @@ from pathlib import Path
 from robot_foundry.io import read_json, write_json
 from robot_foundry.packed import build_packed_cache
 from robot_foundry.prepare import prepare
+from robot_foundry.storage import GIB, require_free
 
 
 def hardware_report():
@@ -72,6 +73,51 @@ def recipe(args, hardware):
     return cfg
 
 
+def stage_models(cfg):
+    if cfg["backend"] != "smolvla":
+        return
+    from huggingface_hub import snapshot_download
+
+    models = read_json(cfg["registry"])
+    snapshot_download(models["smolvla"]["repo_id"], revision=models["smolvla"]["revision"])
+    snapshot_download(
+        models["smolvlm"]["repo_id"],
+        revision=models["smolvlm"]["revision"],
+        ignore_patterns=["*.safetensors", "*.bin", "*.pt", "*.onnx"],
+        local_dir=str(Path(cfg["output_dir"]).resolve() / "vlm_assets"),
+    )
+    write_json(Path(cfg["output_dir"]) / "vlm_assets" / "foundry_revision.json", models["smolvlm"])
+    require_free(cfg["output_dir"], 6 * GIB, "SmolVLA export/checkpoint reserve before training")
+
+
+def launch_training(cfg, cfg_path, resume=False):
+    print(
+        f"Launching {cfg['num_gpus']} GPU process(es), {cfg['precision']}, "
+        f"effective batch={cfg['batch_size'] * cfg['gradient_accumulation'] * cfg['num_gpus']}",
+        flush=True,
+    )
+    command = [
+        sys.executable,
+        "-m",
+        "torch.distributed.run",
+        "--standalone",
+        f"--nproc_per_node={cfg['num_gpus']}",
+        "-m",
+        "robot_foundry.cli",
+        "train",
+        "--config",
+        str(cfg_path),
+    ]
+    if resume:
+        command.append("--resume")
+    worker_env = dict(os.environ, TOKENIZERS_PARALLELISM="false", OMP_NUM_THREADS="2")
+    if cfg["backend"] == "smolvla":
+        worker_env["HF_HUB_OFFLINE"] = "1"
+    subprocess.run(command, env=worker_env, check=True)
+    report = read_json(Path(cfg["output_dir"]) / "report.json")
+    print(json.dumps({"output_dir": cfg["output_dir"], "report": report}, indent=2), flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["smoke", "benchmark", "full"], default="smoke")
@@ -83,6 +129,12 @@ def main():
     parser.add_argument("--precision", choices=["auto", "fp16", "fp32"], default="auto")
     parser.add_argument("--microbatch", type=int, choices=[1, 2, 4], default=None)
     parser.add_argument("--workers", type=int, default=2, help="DataLoader workers per GPU process")
+    parser.add_argument(
+        "--reuse-data", action="store_true", help="Reuse a matching prepared manifest without redecoding"
+    )
+    parser.add_argument(
+        "--keep-npz", action="store_true", help="Keep duplicate NPZ files after packed verification"
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     if Path.cwd().resolve() != root:
@@ -111,50 +163,18 @@ def main():
     )
     # Preparation is cache-aware. Changing a data recipe must rebuild its split/stats manifest.
     if not args.resume:
-        prepare(cfg_path)
+        if args.reuse_data:
+            if not manifest_path.exists() or read_json(manifest_path)["config"] != cfg:
+                raise ValueError("--reuse-data requires the original matching prepared config/manifest.")
+        else:
+            prepare(cfg_path, compact=not args.keep_npz)
     elif not manifest_path.exists():
         raise FileNotFoundError(
             "Prepared data missing. Restore it together with the checkpoint for reliable resume."
         )
-    build_packed_cache(cfg["prepared_dir"])
-    if cfg["backend"] == "smolvla":
-        # Populate the common Hub cache once before both ranks load the policy.
-        from huggingface_hub import snapshot_download
-
-        models = read_json(cfg["registry"])
-        snapshot_download(models["smolvla"]["repo_id"], revision=models["smolvla"]["revision"])
-        snapshot_download(
-            models["smolvlm"]["repo_id"],
-            revision=models["smolvlm"]["revision"],
-            ignore_patterns=["*.safetensors", "*.bin", "*.pt", "*.onnx"],
-            local_dir=str(Path(cfg["output_dir"]).resolve() / "vlm_assets"),
-        )
-        write_json(Path(cfg["output_dir"]) / "vlm_assets" / "foundry_revision.json", models["smolvlm"])
-    print(
-        f"Launching {cfg['num_gpus']} GPU process(es), {cfg['precision']}, "
-        f"effective batch={cfg['batch_size'] * cfg['gradient_accumulation'] * cfg['num_gpus']}",
-        flush=True,
-    )
-    command = [
-        sys.executable,
-        "-m",
-        "torch.distributed.run",
-        "--standalone",
-        f"--nproc_per_node={cfg['num_gpus']}",
-        "-m",
-        "robot_foundry.cli",
-        "train",
-        "--config",
-        str(cfg_path),
-    ]
-    if args.resume:
-        command.append("--resume")
-    worker_env = dict(os.environ, TOKENIZERS_PARALLELISM="false", OMP_NUM_THREADS="2")
-    if cfg["backend"] == "smolvla":
-        worker_env["HF_HUB_OFFLINE"] = "1"
-    subprocess.run(command, env=worker_env, check=True)
-    report = read_json(Path(cfg["output_dir"]) / "report.json")
-    print(json.dumps({"output_dir": cfg["output_dir"], "report": report}, indent=2), flush=True)
+    build_packed_cache(cfg["prepared_dir"], compact=not args.keep_npz)
+    stage_models(cfg)
+    launch_training(cfg, cfg_path, args.resume)
 
 
 if __name__ == "__main__":

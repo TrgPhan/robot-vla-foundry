@@ -36,7 +36,7 @@ class TinyBackend:
     def predict(self, batch):
         return self.model(batch)
 
-    def export(self, path, dataset):
+    def export(self, path, dataset, asset_destination=None):
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         torch.save({"model": self.model.state_dict(), "spec": self.model.spec}, path / "model.pt")
@@ -136,7 +136,7 @@ class SmolBackend:
     def predict(self, batch):
         return self.model.predict_action_chunk(batch)
 
-    def export(self, path, dataset):
+    def export(self, path, dataset, asset_destination=None):
         path = Path(path).resolve()
         path.mkdir(parents=True, exist_ok=True)
         # Local tokenizer/config assets travel with every exported checkpoint.
@@ -145,7 +145,7 @@ class SmolBackend:
                 self.assets, path / "vlm_assets", dirs_exist_ok=True, ignore=shutil.ignore_patterns(".cache")
             )
         previous_name = self.model.config.vlm_model_name
-        self.model.config.vlm_model_name = str(path / "vlm_assets")
+        self.model.config.vlm_model_name = str(Path(asset_destination or path / "vlm_assets").resolve())
         try:
             self.model.save_pretrained(path)
         finally:

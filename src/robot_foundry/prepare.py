@@ -7,6 +7,7 @@ import numpy as np
 
 from .datasets import compatible, episode_paths, load_episode, metadata, signature, split_episodes
 from .io import file_hash, fingerprint, read_json, write_json
+from .packed import build_episode, cache_path, compact_episode, validate_cache
 from .video import decode_frames
 
 
@@ -18,7 +19,7 @@ def action_chunk(actions, start, horizon):
     return actions[np.minimum(indices, len(actions) - 1)], valid
 
 
-def prepare(config_path):
+def prepare(config_path, compact=False):
     cfg = read_json(config_path)
     registry = read_json(cfg.get("registry", "configs/datasets.json"))
     out = Path(cfg["prepared_dir"])
@@ -57,7 +58,12 @@ def prepare(config_path):
                 relative = f"episodes/{key}_{eid:06d}_{cache_key[:12]}.npz"
                 path = out / relative
                 meta_path = path.with_suffix(".json")
-                if not path.exists() or not meta_path.exists():
+                compact_record = None
+                if not path.exists() and meta_path.exists():
+                    compact_record = read_json(meta_path).get("packed_record")
+                    if compact_record:
+                        validate_cache(out, compact_record)
+                if (not path.exists() or not meta_path.exists()) and not compact_record:
                     states, actions, times, task_ids, videos = load_episode(entry, root, info, ep, cameras)
                     ids = np.arange(0, len(states), cfg["stride"])
                     images = np.stack(
@@ -97,20 +103,30 @@ def prepare(config_path):
                             },
                         },
                     )
-                with np.load(path, allow_pickle=False) as arrays:
-                    n = len(arrays["states"])
+                if compact_record:
+                    packed = cache_path(out, compact_record)
+                    n = compact_record["samples"]
                     if split == "train":
-                        states = arrays["full_states"].astype(np.float64)
-                        actions = arrays["full_actions"].astype(np.float64)
-                        if count == 0:
-                            sum_state, sum_state2 = states.sum(0), np.square(states).sum(0)
-                            sum_action, sum_action2 = actions.sum(0), np.square(actions).sum(0)
-                        else:
-                            sum_state += states.sum(0)
-                            sum_state2 += np.square(states).sum(0)
-                            sum_action += actions.sum(0)
-                            sum_action2 += np.square(actions).sum(0)
-                        count += len(states)
+                        states = np.load(packed / "full_states.npy", allow_pickle=False).astype(np.float64)
+                        actions = np.load(packed / "full_actions.npy", allow_pickle=False).astype(np.float64)
+                    digest = compact_record["sha256"]
+                else:
+                    with np.load(path, allow_pickle=False) as arrays:
+                        n = len(arrays["states"])
+                        if split == "train":
+                            states = arrays["full_states"].astype(np.float64)
+                            actions = arrays["full_actions"].astype(np.float64)
+                    digest = file_hash(path)
+                if split == "train":
+                    if count == 0:
+                        sum_state, sum_state2 = states.sum(0), np.square(states).sum(0)
+                        sum_action, sum_action2 = actions.sum(0), np.square(actions).sum(0)
+                    else:
+                        sum_state += states.sum(0)
+                        sum_state2 += np.square(states).sum(0)
+                        sum_action += actions.sum(0)
+                        sum_action2 += np.square(actions).sum(0)
+                    count += len(states)
                 records.append(
                     {
                         "source": key,
@@ -121,9 +137,12 @@ def prepare(config_path):
                         "split": split,
                         "samples": n,
                         "path": relative,
-                        "sha256": file_hash(path),
+                        "sha256": digest,
                     }
                 )
+                if compact and cfg.get("packed_cache"):
+                    build_episode(out, records[-1])
+                    compact_episode(out, records[-1])
                 print(f"prepared {key} episode={eid} split={split} samples={n}", flush=True)
     if not count:
         raise ValueError("No training data selected.")

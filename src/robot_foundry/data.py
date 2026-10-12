@@ -48,7 +48,7 @@ class EpisodesDataset(Dataset):
         episode_idx = bisect.bisect_right(self.ends, index)
         row = index - (self.ends[episode_idx - 1] if episode_idx else 0)
         if episode_idx not in self.cache:
-            if self.packed:
+            if self.packed or not (self.root / self.records[episode_idx]["path"]).exists():
                 from .packed import open_episode
 
                 self.cache[episode_idx] = open_episode(self.root, self.records[episode_idx])
@@ -66,7 +66,7 @@ class EpisodesDataset(Dataset):
             state = (state - self.state_mean) / self.state_std
             action = (action - self.action_mean) / self.action_std
         prompt = str(a["prompts"][row])
-        if self.packed:
+        if "image_blob" in a:
             from .packed import image_row
 
             images = image_row(a, row)

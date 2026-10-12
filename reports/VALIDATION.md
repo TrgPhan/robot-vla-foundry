@@ -25,3 +25,11 @@ T4 ×2 release (`kaggle-v2`):
 - Lossless packed cache returns exactly the same RGB, state, action, padding mask and language tokens as the original NPZ reader.
 - One/two-GPU full and benchmark recipes retain effective batch 16. Explicit two-GPU selection fails when only one GPU is present.
 - Notebook cells compile; production multi-GPU launcher uses Linux `torchrun`/NCCL. Actual T4 ×2 throughput, full SmolVLA convergence and full Kaggle notebook execution remain unmeasured.
+
+Disk recovery patch (`kaggle-v2.1`):
+
+- Pixel/label-verified NPZ compaction keeps the manifest, split, statistics and fingerprint unchanged; both explicit packed reading and automatic fallback after NPZ removal match the original samples.
+- Compact preparation reentry keeps the exact manifest/statistics without raw redownload or video redecode.
+- Injected export/checkpoint/archive write failures preserve the previous valid artifacts and remove partial writes. Transactional model export records its final asset path, not its staging path.
+- Insufficient disk fails before the first optimizer update. An unreadable best export can be re-scored/rebuilt from a durable optimizer checkpoint and then resumed; this does not recover a lost historical best model.
+- Complete temporary optimizer checkpoints with matching provenance are salvaged; mismatched artifacts are retained and rejected for inspection.

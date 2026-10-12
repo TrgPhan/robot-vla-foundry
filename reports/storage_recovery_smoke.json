@@ -1,0 +1,57 @@
+{
+  "scope": "Local RTX A1000 4 GB diagnostic; actual pretrained SmolVLA FP16, 96px/H16, six real LIBERO episodes; production >=14 GiB guard bypassed only inside this diagnostic process; not a T4 benchmark",
+  "compact_manifest_unchanged": true,
+  "duplicate_npz_unlinked_bytes": 11368023,
+  "corrupt_export_detected": true,
+  "durable_checkpoint_preserved": true,
+  "simulation_reload_finite": true,
+  "report": {
+    "backend": "smolvla",
+    "engine": "ddp_amp_v2",
+    "world_size": 1,
+    "precision": "fp16",
+    "effective_batch": 1,
+    "steps": 2,
+    "optimizer_updates": 2,
+    "amp_skipped_updates": 0,
+    "validation_best_rmse": 1.3956584085967123,
+    "test": {
+      "normalized_rmse": 1.93095522123292,
+      "mean_action_baseline_normalized_rmse": 0.8201422394845967,
+      "raw_mae_per_dimension": [
+        0.6140726227215705,
+        0.37268829904584977,
+        0.7877067691868047,
+        0.03806239977106391,
+        0.16342406069542875,
+        0.1256845402284506,
+        0.3142607751202009
+      ],
+      "first_action_normalized_rmse": 2.234405799227415,
+      "first_action_raw_mae_per_dimension": [
+        0.5576876191503111,
+        0.7605751995462295,
+        0.6205137968153647,
+        0.014811084867331216,
+        0.2648764953713254,
+        0.07833366309717871,
+        0.25818844872844693
+      ],
+      "evaluated_samples": 2,
+      "batches_across_ranks": 2,
+      "sample_cap": 2,
+      "precision": "fp16",
+      "metric_scope": "held-out open-loop demonstrations; not rollout success or balance"
+    },
+    "selected_by": "validation normalized RMSE",
+    "best_reconstructed_from_resume": true,
+    "wall_seconds_this_invocation": 61.172040199977346,
+    "trainable_parameters": 99880992,
+    "peak_cuda_memory_mib_by_rank": [
+      3188.7880859375
+    ],
+    "parameter_digests_by_rank": null,
+    "training_parameter_digests_by_rank": null,
+    "data_fingerprint": "205b72ba4a387fbab5440eca6a0eb335e83ced181b6bafe6244abdfa2cb0a60f"
+  }
+}

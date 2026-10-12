@@ -18,6 +18,14 @@ from .data import EpisodesDataset, masked_loss
 from .distributed import Runtime, StepBatchSampler
 from .io import fingerprint, read_json, write_json
 from .precision import autocast
+from .storage import (
+    atomic_export,
+    best_usable,
+    recover_export,
+    recover_temporary_checkpoint,
+    require_free,
+    save_budget,
+)
 from .train import atomic_checkpoint, lr_factor, seed_everything
 
 
@@ -173,6 +181,13 @@ def run_training(cfg, runtime, resume):
     torch.set_num_threads(cfg.get("cpu_threads_per_rank", 2))
     out = Path(cfg["output_dir"])
     state_path = out / "training_state.pt"
+    runtime.primary_call(
+        lambda: recover_temporary_checkpoint(
+            state_path,
+            fingerprint(cfg),
+            read_json(Path(cfg["prepared_dir"]) / "manifest.json")["fingerprint"],
+        )
+    )
     if state_path.exists() and not resume:
         raise FileExistsError(f"Existing run {out}; use --resume or a fresh name.")
     if resume and not state_path.exists():
@@ -245,6 +260,35 @@ def run_training(cfg, runtime, resume):
     torch.set_num_threads(cfg.get("cpu_threads_per_rank", 2))
     if resume_rng:
         restore_rng(resume_rng, runtime)
+    runtime.primary_call(lambda: recover_export(out / "best"))
+    runtime.primary_call(
+        lambda: require_free(out, save_budget(model, out), "model export and resume checkpoint")
+    )
+    best_reconstructed = False
+    if resume and not runtime.primary_call(lambda: best_usable(out / "best", cfg["backend"])):
+        best_reconstructed = True
+        if runtime.primary:
+            print(
+                "Previous best export is incomplete. Re-scoring the saved optimizer checkpoint as best.",
+                flush=True,
+            )
+        with torch.random.fork_rng(devices=[runtime.local_rank] if device.type == "cuda" else []):
+            torch.manual_seed(cfg["seed"] + 303 + runtime.rank)
+            repaired = evaluate(backend, datasets["val"], cfg, runtime)
+        best = repaired["normalized_rmse"]
+        runtime.primary_call(
+            lambda: atomic_export(
+                backend,
+                out / "best",
+                dataset,
+                {
+                    "step": start,
+                    "validation_rmse": best,
+                    "reconstructed_from_resume": True,
+                    "data_fingerprint": dataset.manifest["fingerprint"],
+                },
+            )
+        )
     sampler = StepBatchSampler(
         len(dataset),
         cfg["batch_size"],
@@ -313,9 +357,26 @@ def run_training(cfg, runtime, resume):
             with torch.random.fork_rng(devices=[runtime.local_rank] if device.type == "cuda" else []):
                 torch.manual_seed(cfg["seed"] + 303 + runtime.rank)
                 metrics = evaluate(backend, datasets["val"], cfg, runtime)
-            if metrics["normalized_rmse"] < best:
+            improved = metrics["normalized_rmse"] < best
+            runtime.primary_call(
+                lambda: require_free(
+                    out, save_budget(model, out, export_best=improved), "validation export and checkpoint"
+                )
+            )
+            if improved:
+                runtime.primary_call(
+                    lambda: atomic_export(
+                        backend,
+                        out / "best",
+                        dataset,
+                        {
+                            "step": step + 1,
+                            "validation_rmse": metrics["normalized_rmse"],
+                            "data_fingerprint": dataset.manifest["fingerprint"],
+                        },
+                    )
+                )
                 best = metrics["normalized_rmse"]
-                runtime.primary_call(lambda: backend.export(out / "best", dataset))
             ranks = runtime.gather(rng_state(runtime))
             memory = runtime.gather(
                 torch.cuda.max_memory_allocated(device) / 2**20 if device.type == "cuda" else None
@@ -338,8 +399,6 @@ def run_training(cfg, runtime, resume):
             }
 
             def save():
-                with (out / "metrics.jsonl").open("a", encoding="utf-8") as file:
-                    file.write(json.dumps(row, allow_nan=False) + "\n")
                 atomic_checkpoint(
                     state_path,
                     {
@@ -359,6 +418,8 @@ def run_training(cfg, runtime, resume):
                         "data_fingerprint": dataset.manifest["fingerprint"],
                     },
                 )
+                with (out / "metrics.jsonl").open("a", encoding="utf-8") as file:
+                    file.write(json.dumps(row, allow_nan=False) + "\n")
 
             runtime.primary_call(save)
             if runtime.primary:
@@ -398,6 +459,7 @@ def run_training(cfg, runtime, resume):
         "validation_best_rmse": best,
         "test": test,
         "selected_by": "validation normalized RMSE",
+        "best_reconstructed_from_resume": best_reconstructed,
         "wall_seconds_this_invocation": time.perf_counter() - wall_start,
         "trainable_parameters": sum(p.numel() for p in trainable),
         "peak_cuda_memory_mib_by_rank": memory,

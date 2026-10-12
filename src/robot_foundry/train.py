@@ -100,8 +100,12 @@ def evaluate(backend, dataset, batch_size=16, max_batches=None):
 
 def atomic_checkpoint(path, value):
     temp = Path(path).with_suffix(".tmp")
-    torch.save(value, temp)
-    os.replace(temp, path)
+    try:
+        torch.save(value, temp)
+        os.replace(temp, path)
+    except BaseException:
+        temp.unlink(missing_ok=True)
+        raise
 
 
 def train(config_path, resume=False):
