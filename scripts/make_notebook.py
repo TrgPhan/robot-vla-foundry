@@ -31,7 +31,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v1'  # Pinned release. Choose 'main' in a fresh directory for later changes.
+GIT_REF = 'kaggle-v1.1'  # Pinned release. Choose 'main' in a fresh directory for later changes.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):

@@ -16,8 +16,8 @@ def test_exact_rgb_transport_and_state_validation():
     payload = encode_observation(obs, "pick the milk")
     decoded, prompt = decode_observation(payload)
     assert prompt == "pick the milk"
-    for key in obs:
-        np.testing.assert_array_equal(decoded[key], obs[key])
+    for key, value in obs.items():
+        np.testing.assert_array_equal(decoded[key], value)
     payload["state"]["robot0_eef_quat"] = [0, 0, 0, 0]
     with pytest.raises(ValueError, match="quaternion"):
         decode_observation(payload)

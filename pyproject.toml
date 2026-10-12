@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = ["numpy>=2.0,<3", "torch>=2.7,<3", "pyarrow>=19,<30", "av==15.1.0", "Pillow>=10,<13", "huggingface-hub>=0.34,<2"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "ruff>=0.12,<1"]
+dev = ["pytest>=8,<10", "ruff==0.15.16"]
 
 [project.scripts]
 robot-foundry = "robot_foundry.cli:main"

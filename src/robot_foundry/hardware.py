@@ -36,6 +36,7 @@ def probe():
     if shutil.which("nvidia-smi"):
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
+            check=False,
             capture_output=True,
             text=True,
         )
