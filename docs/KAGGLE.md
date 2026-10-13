@@ -208,3 +208,5 @@ print('Simulation return code:', result.returncode)
 ```
 
 `run_kaggle_sim.py` đọc config/checkpoint đã lưu và chỉ chạy setup/evaluation. Nếu vẫn thiếu 4 GiB, compact và prune raw theo hash của đúng run bằng `scripts/kaggle_storage.py --run RUN --apply --prune-raw`, rồi chỉ chạy lại simulation. Khi `.venv-sim-cpu` đã cài xong, thêm `--skip-setup` để tái dùng môi trường. Một evaluation hoàn tất với 0% success vẫn là kết quả hợp lệ; trạng thái `complete` của simulation không có nghĩa model đã đạt success cao.
+
+Linux headless dùng `MUJOCO_GL=egl` và `PYOPENGL_PLATFORM=egl` trước khi import MuJoCo/Robosuite. Trên máy Linux mới thiếu thư viện OpenGL/EGL, cài `libegl1` và `libgl1` bằng package manager hệ thống; wheel PyTorch CPU không cung cấp các thư viện render này. CI kiểm tra cài mới trên Ubuntu với hai thư viện đó. Môi trường GPU Kaggle vẫn cần driver/render backend phù hợp để chạy rollout.

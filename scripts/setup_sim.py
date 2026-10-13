@@ -106,7 +106,11 @@ def main():
         "print(json.dumps({'torch': torch.__version__, 'cuda': torch.version.cuda, "
         "'numpy': numpy.__version__, 'mujoco': mujoco.__version__}))"
     )
-    result = subprocess.check_output([str(executable), "-c", check], text=True)
+    check_env = dict(os.environ)
+    if os.name != "nt":
+        check_env.setdefault("MUJOCO_GL", "egl")
+        check_env.setdefault("PYOPENGL_PLATFORM", check_env["MUJOCO_GL"])
+    result = subprocess.check_output([str(executable), "-c", check], text=True, env=check_env)
     versions = json.loads(result)
     if versions["numpy"] != "1.26.4":
         raise RuntimeError(f"Simulation NumPy mismatch: {versions}")
