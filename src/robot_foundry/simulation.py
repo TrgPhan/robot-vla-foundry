@@ -134,6 +134,8 @@ def wilson(successes, trials):
 def evaluate_libero(args):
     if args.episodes_per_task < 1 or args.max_steps < 1 or args.execution_horizon < 1:
         raise ValueError("Positive episode count, max steps, and execution horizon required.")
+    # CLI evaluation also runs outside notebooks; do this before LIBERO imports matplotlib.cm.
+    os.environ["MPLBACKEND"] = "Agg"
     # Set before importing MuJoCo/OpenGL. Windows uses its default WGL backend.
     if os.name != "nt":
         os.environ.setdefault("MUJOCO_GL", "egl")

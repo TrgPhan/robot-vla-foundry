@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from robot_foundry.io import read_json, write_json
+from robot_foundry.sim_environment import simulation_environment
 
 
 def stop_server(server):
@@ -53,6 +54,7 @@ def evaluate(project, run_name, trials=1, suite="libero_object", skip_setup=Fals
         "simulation_torch_index": "cpu",
     }
     server = log = None
+    worker_env = simulation_environment()
 
     def publish():
         try:
@@ -61,7 +63,7 @@ def evaluate(project, run_name, trials=1, suite="libero_object", skip_setup=Fals
             print(f"Could not write simulation status: {error}", flush=True)
 
     def run(argv):
-        subprocess.run([str(x) for x in argv], cwd=project, check=True)
+        subprocess.run([str(x) for x in argv], cwd=project, check=True, env=worker_env)
 
     try:
         publish()
@@ -109,6 +111,7 @@ def evaluate(project, run_name, trials=1, suite="libero_object", skip_setup=Fals
                 "8765",
             ],
             cwd=project,
+            env=worker_env,
             stdout=log,
             stderr=subprocess.STDOUT,
         )

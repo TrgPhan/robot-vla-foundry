@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from robot_foundry.sim_environment import simulation_environment
+
 
 def run(argv):
     print("Run:", argv, flush=True)
@@ -104,12 +106,10 @@ def main():
     check = (
         "import json, torch, numpy, mujoco, robosuite, matplotlib; "
         "print(json.dumps({'torch': torch.__version__, 'cuda': torch.version.cuda, "
-        "'numpy': numpy.__version__, 'mujoco': mujoco.__version__}))"
+        "'numpy': numpy.__version__, 'mujoco': mujoco.__version__, "
+        "'matplotlib_backend': matplotlib.get_backend()}))"
     )
-    check_env = dict(os.environ)
-    if os.name != "nt":
-        check_env.setdefault("MUJOCO_GL", "egl")
-        check_env.setdefault("PYOPENGL_PLATFORM", check_env["MUJOCO_GL"])
+    check_env = simulation_environment()
     result = subprocess.check_output([str(executable), "-c", check], text=True, env=check_env)
     versions = json.loads(result)
     if versions["numpy"] != "1.26.4":

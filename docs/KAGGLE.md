@@ -13,7 +13,7 @@ from pathlib import Path
 
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 subprocess.run([
-    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.2',
+    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.3',
     'https://github.com/TrgPhan/robot-vla-foundry.git', str(PROJECT)
 ], check=True)
 os.chdir(PROJECT)
@@ -145,8 +145,8 @@ if p.exists():
 Cập nhật source tại chỗ, không clone thêm môi trường/data và không chạy lại setup:
 
 ```python
-subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.2'], check=True)
-subprocess.run(['git', 'checkout', 'kaggle-v2.2'], check=True)
+subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.3'], check=True)
+subprocess.run(['git', 'checkout', 'kaggle-v2.3'], check=True)
 subprocess.run([
     TRAIN_PY, 'scripts/recover_kaggle.py', '--run', RUN,
     '--apply', '--prune-raw', '--train'
@@ -195,8 +195,8 @@ if old_sim.exists():
         raise ValueError('Refusing to remove a directory that is not a virtual environment.')
     shutil.rmtree(old_sim)
 subprocess.run(['uv', 'cache', 'clean', 'torch', 'torchvision'], check=True)
-subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.2'], check=True)
-subprocess.run(['git', 'checkout', 'kaggle-v2.2'], check=True)
+subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.3'], check=True)
+subprocess.run(['git', 'checkout', 'kaggle-v2.3'], check=True)
 result = subprocess.run([
     TRAIN_PY, 'scripts/run_kaggle_sim.py', '--run', RUN,
     '--trials', '1', '--suite', 'libero_object'
@@ -210,3 +210,29 @@ print('Simulation return code:', result.returncode)
 `run_kaggle_sim.py` đọc config/checkpoint đã lưu và chỉ chạy setup/evaluation. Nếu vẫn thiếu 4 GiB, compact và prune raw theo hash của đúng run bằng `scripts/kaggle_storage.py --run RUN --apply --prune-raw`, rồi chỉ chạy lại simulation. Khi `.venv-sim-cpu` đã cài xong, thêm `--skip-setup` để tái dùng môi trường. Một evaluation hoàn tất với 0% success vẫn là kết quả hợp lệ; trạng thái `complete` của simulation không có nghĩa model đã đạt success cao.
 
 Linux headless dùng `MUJOCO_GL=egl` và `PYOPENGL_PLATFORM=egl` trước khi import MuJoCo/Robosuite. Trên máy Linux mới thiếu thư viện OpenGL/EGL, cài `libegl1` và `libgl1` bằng package manager hệ thống; wheel PyTorch CPU không cung cấp các thư viện render này. CI kiểm tra cài mới trên Ubuntu với hai thư viện đó. Môi trường GPU Kaggle vẫn cần driver/render backend phù hợp để chạy rollout.
+
+## Lỗi Matplotlib inline backend khi simulation đã cài xong
+
+Kaggle kernel có thể export `MPLBACKEND=module://matplotlib_inline.backend_inline`. Process Python của simulator kế thừa biến này, nhưng môi trường NumPy 1.26 không cài backend notebook đó. V2.3 dùng `Agg` riêng cho process setup, policy server và rollout; backend hiển thị của notebook được giữ nguyên. CI tái hiện môi trường có biến inline trước khi kiểm tra cài mới.
+
+Nếu log đã cài `robot-foundry==0.2.2` rồi chỉ lỗi tại `import matplotlib`, có thể tái dùng môi trường đã cài mà không cần tải lại package hoặc train. Cell này cũng dùng được với code v2.2; nó truyền `Agg` vào toàn bộ process con:
+
+```python
+import os, subprocess
+from pathlib import Path
+
+PROJECT = Path('/kaggle/working/robot-vla-foundry')
+TRAIN_PY = '/kaggle/working/robot-vla-env/bin/python'
+SIM_PY = PROJECT / '.venv-sim-cpu/bin/python'
+RUN = 'kaggle_smolvla_full_autogpu_fp16_mb1'  # Tên chính xác trong log; đổi nếu run của bạn khác.
+sim_env = dict(os.environ, MPLBACKEND='Agg')
+subprocess.run([
+    str(SIM_PY), '-c', 'import matplotlib; print(matplotlib.get_backend())'
+], env=sim_env, check=True)
+subprocess.run([
+    TRAIN_PY, 'scripts/run_kaggle_sim.py', '--run', RUN,
+    '--trials', '1', '--suite', 'libero_object', '--skip-setup'
+], cwd=PROJECT, env=sim_env, check=True)
+```
+
+Bắt đầu với 1 initial state/task. Khi lượt đó hoàn tất, chọn 50 cho evaluation đầy đủ nếu thời gian phiên còn đủ. Các output có số trials khác nhau nằm ở các thư mục khác nhau; giữ kết quả cũ khi chạy lại cùng số trials. Notebook v2.3 có `SKIP_SIM_SETUP=True` cho trường hợp tái dùng môi trường này. Với khoảng 1.28 GiB free disk như log đã gửi, dùng `--skip-setup` để tránh cài lại và giữ ZIP tắt; code đánh giá này không chạy train và không xóa checkpoint/data.

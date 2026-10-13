@@ -32,7 +32,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v2.2'  # CPU simulation + isolated optional evaluation; see docs/KAGGLE.md for existing runs.
+GIT_REF = 'kaggle-v2.3'  # Headless simulation processes ignore the notebook's inline plotting backend.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):
@@ -113,6 +113,8 @@ print(Path(config['output_dir'], 'report.json').read_text())
 Set RUN_SIMULATION=True to install and run LIBERO after training.
 Simulation uses CPU PyTorch and NumPy 1.26 in its own environment (4 GiB install reserve).
 The policy stays on GPU in the training environment and serves actions through localhost HTTP.
+Simulation subprocesses use MPLBACKEND=Agg without changing the notebook's plotting backend.
+Use SKIP_SIM_SETUP=True when the CPU simulator dependencies are already installed.
 Optional setup/rollout failures are recorded and allow the result-saving cells to continue.
 The small smoke model may have zero success.
 Start with 1 initial state/task, then 50 unique states/task for a full evaluation.
@@ -123,6 +125,7 @@ Start with 1 initial state/task, then 50 unique states/task for a full evaluatio
         """RUN_SIMULATION = False
 N_TRIALS = 1  # Set to 50 for a full suite; retain earlier evaluations in a different directory.
 SIM_SUITE = 'libero_object'
+SKIP_SIM_SETUP = False  # True to reuse .venv-sim-cpu, including after an inline-backend import failure.
 """,
     ),
     cell(
@@ -130,6 +133,8 @@ SIM_SUITE = 'libero_object'
         """if RUN_SIMULATION:
     simulation = [TRAIN_PY, 'scripts/run_kaggle_sim.py', '--run', RUN_NAME,
                   '--trials', str(N_TRIALS), '--suite', SIM_SUITE]
+    if SKIP_SIM_SETUP:
+        simulation += ['--skip-setup']
     result = subprocess.run([str(x) for x in simulation], check=False)
     status_file = Path(config['output_dir'], 'simulation_status.json')
     if status_file.exists():

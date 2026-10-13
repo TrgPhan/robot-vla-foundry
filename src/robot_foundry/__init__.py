@@ -1,3 +1,3 @@
 """Robot Foundry: research pipelines, not a hardware deployment controller."""
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"

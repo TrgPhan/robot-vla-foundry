@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-13",
+  "platform": "Windows/Python 3.12",
+  "inherited_backend": "module://matplotlib_inline.backend_inline",
+  "simulation_backend": "Agg",
+  "unpatched_matplotlib_import_failed": true,
+  "patched_setup_import_succeeded": true,
+  "rollout_status": "complete",
+  "owned_server_stopped": true,
+  "rollout": {
+    "backend": "tiny_bc",
+    "suite": "libero_object",
+    "trials": 10,
+    "successes": 0,
+    "macro_success_rate": 0.0,
+    "max_steps": 300,
+    "checkpoint_sha256": "a95bf0fee31a1835eac7685f3cef7fa124a746133a6db057ffe16933949c3b77"
+  },
+  "baseline_checkpoint_preserved": true,
+  "scope": "Notebook-environment regression and existing TinyBC integration only; not a SmolVLA task-success benchmark"
+}

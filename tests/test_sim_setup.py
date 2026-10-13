@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from robot_foundry.io import read_json, write_json
+from robot_foundry.sim_environment import simulation_environment
 
 
 def load_script(name):
@@ -51,9 +52,11 @@ def test_optional_failure_preserves_training_and_stops_owned_server(tmp_path, mo
     sim_python.parent.mkdir(parents=True)
     sim_python.touch()
     calls = []
+    monkeypatch.setenv("MPLBACKEND", "module://matplotlib_inline.backend_inline")
 
     def command(argv, **kwargs):
         calls.append(argv)
+        assert kwargs["env"]["MPLBACKEND"] == "Agg"
         stage = (
             "setup"
             if "scripts/setup_sim.py" in argv
@@ -78,3 +81,18 @@ def test_optional_failure_preserves_training_and_stops_owned_server(tmp_path, mo
     assert (out / "training_state.pt").read_bytes() == b"saved-optimizer-must-remain"
     assert not any("train" in argv for argv in calls)
     assert stopped == [None if fail_stage == "setup" else server]
+
+
+def test_simulation_env_leaves_notebook_parent_unchanged(monkeypatch):
+    parent = {"MPLBACKEND": "module://matplotlib_inline.backend_inline", "HF_HUB_OFFLINE": "1"}
+    monkeypatch.setattr("robot_foundry.sim_environment.sys.platform", "linux")
+    child = simulation_environment(parent)
+    assert child["MPLBACKEND"] == "Agg" and child["HF_HUB_OFFLINE"] == "1"
+    assert child["MUJOCO_GL"] == "egl" and child["PYOPENGL_PLATFORM"] == "egl"
+    assert parent == {"MPLBACKEND": "module://matplotlib_inline.backend_inline", "HF_HUB_OFFLINE": "1"}
+
+
+def test_explicit_osmesa_renderer_is_preserved(monkeypatch):
+    monkeypatch.setattr("robot_foundry.sim_environment.sys.platform", "linux")
+    child = simulation_environment({"MUJOCO_GL": "osmesa"})
+    assert child["MUJOCO_GL"] == "osmesa" and child["PYOPENGL_PLATFORM"] == "osmesa"

@@ -31,9 +31,11 @@ jobs:
       - name: Notebook code validation
         run: python scripts/make_notebook.py
       - name: Fresh Linux CPU simulation installation
+        env:
+          MPLBACKEND: module://matplotlib_inline.backend_inline
         run: |
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1
           python -m pip install uv==0.10.11
           python scripts/setup_sim.py --env .venv-sim-ci --python 3.12 --torch-index cpu
-          .venv-sim-ci/bin/python -c "import torch, numpy; assert torch.version.cuda is None; assert numpy.__version__ == '1.26.4'"
+          MPLBACKEND=Agg .venv-sim-ci/bin/python -c "import torch, numpy, matplotlib; assert torch.version.cuda is None; assert numpy.__version__ == '1.26.4'; assert matplotlib.get_backend().lower() == 'agg'"

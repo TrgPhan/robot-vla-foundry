@@ -2,7 +2,7 @@
 
 Project nghiên cứu cho tác vụ **gắp vật và đặt vào giỏ**, ưu tiên Kaggle và simulation theo lựa chọn của bạn. Mã nguồn dùng cấu trúc `src/`, `pyproject.toml`, cấu hình JSON, checkpoint có provenance và kiểm thử tự động. Đây là các quy ước tổ chức project Python; project chưa có chứng nhận ISO hoặc kiểm định triển khai robot thực.
 
-**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.2`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.3`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 ## Quyết định kiến trúc
 
