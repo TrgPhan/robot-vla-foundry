@@ -2,7 +2,7 @@
 
 Project nghiên cứu cho tác vụ **gắp vật và đặt vào giỏ**, ưu tiên Kaggle và simulation theo lựa chọn của bạn. Mã nguồn dùng cấu trúc `src/`, `pyproject.toml`, cấu hình JSON, checkpoint có provenance và kiểm thử tự động. Đây là các quy ước tổ chức project Python; project chưa có chứng nhận ISO hoặc kiểm định triển khai robot thực.
 
-**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.1`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.2`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 ## Quyết định kiến trúc
 
@@ -89,7 +89,9 @@ python scripts/setup_sim.py --env .venv-sim-local --python 3.12
 .venv-sim-local/Scripts/python.exe -m robot_foundry.cli eval-libero --checkpoint outputs/local_tiny_bc/best --suite libero_object --episodes-per-task 1 --max-steps 300 --output outputs/libero_quick
 ```
 
-Script tự sửa hai lỗi dependency Windows trong **venv riêng**: vị trí `mujoco.dll` và lựa chọn OpenGL của Robosuite. Không cần sửa checkout LIBERO hoặc xóa cấu hình `~/.libero` của bạn. Máy này đã có môi trường kiểm chứng `.venv-sim-312`; có thể dùng Python trong môi trường đó trực tiếp.
+Script mặc định cài PyTorch CPU và NumPy 1.26 trong **venv riêng**, kiểm tra 4 GiB disk dự phòng trước khi cài. Hai lỗi dependency Windows được sửa trong venv: vị trí `mujoco.dll` và lựa chọn OpenGL của Robosuite. Không cần sửa checkout LIBERO hoặc xóa cấu hình `~/.libero` của bạn. Máy này đã có môi trường kiểm chứng `.venv-sim-312`; có thể dùng Python trong môi trường đó trực tiếp.
+
+Trên Kaggle, `scripts/run_kaggle_sim.py --run TEN_RUN --trials 1` đánh giá checkpoint đã lưu, dùng môi trường CPU cho simulator và policy server GPU trong môi trường train. Lỗi simulation được ghi riêng; notebook vẫn tiếp tục lưu kết quả train. Cách khôi phục lỗi cài `.venv-sim` vì hết disk nằm trong [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 SmolVLA chạy trong môi trường train; simulation gọi policy server trên `127.0.0.1`, như các cell của notebook. Server chỉ phục vụ mô phỏng, không gửi lệnh tới robot. Chi tiết đánh giá và gripper convention ở [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
 

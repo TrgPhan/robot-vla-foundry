@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-13",
+  "platform": "Windows/Python 3.12",
+  "scope": "Fresh CPU simulator install and HTTP policy integration using the existing TinyBC baseline; not a T4/SmolVLA benchmark",
+  "versions": {
+    "torch": "2.7.1+cpu",
+    "torch_cuda": null,
+    "numpy": "1.26.4",
+    "mujoco": "3.3.1"
+  },
+  "installed_environment_bytes": 2595639194,
+  "owned_server_stopped": true,
+  "rollout": {
+    "suite": "libero_object",
+    "backend": "tiny_bc",
+    "successes": 0,
+    "trials": 10,
+    "macro_success_rate": 0.0,
+    "max_steps": 300,
+    "checkpoint_sha256": "a95bf0fee31a1835eac7685f3cef7fa124a746133a6db057ffe16933949c3b77"
+  },
+  "baseline_checkpoint_preserved": true
+}

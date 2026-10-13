@@ -32,7 +32,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v2.1'  # Compact data + guarded/transactional exports; update existing v2 runs via docs/KAGGLE.md.
+GIT_REF = 'kaggle-v2.2'  # CPU simulation + isolated optional evaluation; see docs/KAGGLE.md for existing runs.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):
@@ -111,54 +111,33 @@ print(Path(config['output_dir'], 'report.json').read_text())
         """## Optional closed-loop simulation
 
 Set RUN_SIMULATION=True to install and run LIBERO after training.
-Simulation uses NumPy 1.26 in its own environment. SmolVLA stays in the training environment
-and serves actions through a loopback HTTP endpoint. The small smoke model may have zero success.
+Simulation uses CPU PyTorch and NumPy 1.26 in its own environment (4 GiB install reserve).
+The policy stays on GPU in the training environment and serves actions through localhost HTTP.
+Optional setup/rollout failures are recorded and allow the result-saving cells to continue.
+The small smoke model may have zero success.
 Start with 1 initial state/task, then 50 unique states/task for a full evaluation.
 """,
     ),
     cell(
         "code",
         """RUN_SIMULATION = False
-SIM_PY = PROJECT / '.venv-sim/bin/python'
-checkpoint = (PROJECT / config['output_dir'] / 'best').resolve()
-server = None
-server_log = None
-if RUN_SIMULATION:
-    run([TRAIN_PY, 'scripts/setup_sim.py', '--env', PROJECT / '.venv-sim', '--python', '3.12'])
-if RUN_SIMULATION and BACKEND == 'smolvla':
-    server_log = open('outputs/policy_server.log', 'w')
-    server = subprocess.Popen([str(TRAIN_PY), 'scripts/policy_server.py', '--checkpoint', str(checkpoint),
-                               '--backend', 'smolvla', '--precision', PRECISION, '--port', '8765'], cwd=PROJECT,
-                              stdout=server_log, stderr=subprocess.STDOUT)
-    try:
-        run([TRAIN_PY, 'scripts/wait_policy_server.py', '--port', '8765'])
-    except Exception:
-        server.terminate()
-        server.wait(timeout=30)
-        server_log.close()
-        raise
+N_TRIALS = 1  # Set to 50 for a full suite; retain earlier evaluations in a different directory.
+SIM_SUITE = 'libero_object'
 """,
     ),
     cell(
         "code",
-        """N_TRIALS = 1  # Set to 50 for a full suite; use a fresh output directory each time.
-evaluation_output = f'outputs/libero_{RUN_NAME}_{N_TRIALS}'
-evaluation = [SIM_PY, '-m', 'robot_foundry.cli', 'eval-libero', '--checkpoint', checkpoint,
-              '--backend', BACKEND, '--suite', 'libero_object', '--episodes-per-task', N_TRIALS,
-              '--max-steps', '300', '--execution-horizon', '4', '--output', evaluation_output]
-if BACKEND == 'smolvla':
-    evaluation += ['--policy-url', 'http://127.0.0.1:8765']
-try:
-    if RUN_SIMULATION:
-        run(evaluation)
-finally:
-    if server:
-        server.terminate()
-        server.wait(timeout=30)
-    if server_log:
-        server_log.close()
-if RUN_SIMULATION:
-    print(Path(evaluation_output, 'report.json').read_text())
+        """if RUN_SIMULATION:
+    simulation = [TRAIN_PY, 'scripts/run_kaggle_sim.py', '--run', RUN_NAME,
+                  '--trials', str(N_TRIALS), '--suite', SIM_SUITE]
+    result = subprocess.run([str(x) for x in simulation], check=False)
+    status_file = Path(config['output_dir'], 'simulation_status.json')
+    if status_file.exists():
+        print(status_file.read_text())
+    if result.returncode:
+        print('Simulation failed; inspect the log/status above. Continue saving the training artifacts.')
+else:
+    print('Simulation skipped. Saved training artifacts:', config['output_dir'])
 """,
     ),
     cell(

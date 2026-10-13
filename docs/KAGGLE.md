@@ -13,7 +13,7 @@ from pathlib import Path
 
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 subprocess.run([
-    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.1',
+    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.2',
     'https://github.com/TrgPhan/robot-vla-foundry.git', str(PROJECT)
 ], check=True)
 os.chdir(PROJECT)
@@ -145,8 +145,8 @@ if p.exists():
 Cập nhật source tại chỗ, không clone thêm môi trường/data và không chạy lại setup:
 
 ```python
-subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.1'], check=True)
-subprocess.run(['git', 'checkout', 'kaggle-v2.1'], check=True)
+subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.2'], check=True)
+subprocess.run(['git', 'checkout', 'kaggle-v2.2'], check=True)
 subprocess.run([
     TRAIN_PY, 'scripts/recover_kaggle.py', '--run', RUN,
     '--apply', '--prune-raw', '--train'
@@ -161,6 +161,50 @@ Nếu sau compact vẫn chưa đủ 6 GiB, recovery dừng trước train. Xem `
 
 ## Simulation sau train
 
-Notebook có các cell riêng: đổi `RUN_SIMULATION=True` để chạy LIBERO với môi trường NumPy 1.26 tách biệt. SmolVLA được phục vụ qua localhost HTTP từ môi trường train. Mặc định simulation tắt để `Run All` ưu tiên train. Metric open-loop không phải tỷ lệ thành công; protocol benchmark ở [`BENCHMARK.md`](BENCHMARK.md).
+Notebook có các cell riêng: đổi `RUN_SIMULATION=True` để chạy LIBERO trong `.venv-sim-cpu`, dùng PyTorch CPU và NumPy 1.26. Policy vẫn chạy GPU trong môi trường train và phục vụ qua localhost HTTP. Installer giữ dự phòng 4 GiB cho CPU, 8 GiB nếu chủ động chọn CUDA; đây là budget bảo thủ, không phải số đo trên Kaggle. `uv --no-cache` tránh giữ thêm bản unpacked wheel sau cài đặt. Simulation lỗi được ghi vào `outputs/RUN_NAME/simulation_status.json` và notebook tiếp tục tới cell lưu kết quả. Mặc định simulation tắt để `Run All` ưu tiên train. Metric open-loop không phải tỷ lệ thành công; protocol benchmark ở [`BENCHMARK.md`](BENCHMARK.md).
 
 GR00T N1.7 + SONIC vẫn là nhánh riêng, cần GPU lớn và paired G1 data; notebook Kaggle này không giả lập một model GR00T khi đang dùng SmolVLA.
+
+## Hết disk khi cài `.venv-sim` sau train
+
+Lỗi copy `libtorch_cuda.so` trong `scripts/setup_sim.py` thuộc bước cài simulation. Không đổi microbatch và không chạy lại train chỉ vì lỗi này. Nếu `report.json` có số bước bằng recipe và `best/model.safetensors` đọc được, lượt train đã có output cuối; lỗi simulation không phải lỗi optimizer. Nếu phiên đã reset và chưa lưu output, cần bản sao checkpoint để tiếp tục.
+
+Trước hết kiểm tra các report còn trong phiên:
+
+```python
+from pathlib import Path
+import json, os, subprocess, shutil
+
+PROJECT = Path('/kaggle/working/robot-vla-foundry').resolve()
+TRAIN_PY = '/kaggle/working/robot-vla-env/bin/python'
+os.chdir(PROJECT)
+for path in sorted((PROJECT / 'outputs').glob('*/report.json')):
+    report = json.loads(path.read_text())
+    print(path.parent.name, 'steps:', report.get('steps'), 'test:', report.get('test'))
+```
+
+Giữ tên run đã in ở trên. Cell sau chỉ tái tạo môi trường simulation và bỏ cache wheel có thể tải lại; checkpoint, output và prepared data được giữ. Không chạy cell khi process simulation đang dùng `.venv-sim`.
+
+```python
+RUN = RUN_NAME  # Hoặc gán chính xác tên thư mục outputs của lượt train cũ.
+old_sim = PROJECT / '.venv-sim'
+if old_sim.exists():
+    if old_sim.is_symlink() or old_sim.resolve().parent != PROJECT:
+        raise ValueError('Simulation environment must stay inside PROJECT.')
+    if not (old_sim / 'pyvenv.cfg').is_file():
+        raise ValueError('Refusing to remove a directory that is not a virtual environment.')
+    shutil.rmtree(old_sim)
+subprocess.run(['uv', 'cache', 'clean', 'torch', 'torchvision'], check=True)
+subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'tag', 'kaggle-v2.2'], check=True)
+subprocess.run(['git', 'checkout', 'kaggle-v2.2'], check=True)
+result = subprocess.run([
+    TRAIN_PY, 'scripts/run_kaggle_sim.py', '--run', RUN,
+    '--trials', '1', '--suite', 'libero_object'
+], check=False)
+status = PROJECT / 'outputs' / RUN / 'simulation_status.json'
+if status.exists():
+    print(status.read_text())
+print('Simulation return code:', result.returncode)
+```
+
+`run_kaggle_sim.py` đọc config/checkpoint đã lưu và chỉ chạy setup/evaluation. Nếu vẫn thiếu 4 GiB, compact và prune raw theo hash của đúng run bằng `scripts/kaggle_storage.py --run RUN --apply --prune-raw`, rồi chỉ chạy lại simulation. Khi `.venv-sim-cpu` đã cài xong, thêm `--skip-setup` để tái dùng môi trường. Một evaluation hoàn tất với 0% success vẫn là kết quả hợp lệ; trạng thái `complete` của simulation không có nghĩa model đã đạt success cao.
