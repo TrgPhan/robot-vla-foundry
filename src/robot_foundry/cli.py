@@ -45,6 +45,7 @@ def main():
     p.add_argument("--device", default="auto")
     p.add_argument("--policy-url", default=None)
     p.add_argument("--output", default="outputs/libero_eval")
+    p.add_argument("--record-video", action="store_true", help="Save both policy cameras as MP4 per trial")
     args = parser.parse_args()
     if args.command == "doctor":
         from .hardware import probe

@@ -24,7 +24,15 @@ def stop_server(server):
         server.wait(timeout=15)
 
 
-def evaluate(project, run_name, trials=1, suite="libero_object", skip_setup=False, sim_env=".venv-sim-cpu"):
+def evaluate(
+    project,
+    run_name,
+    trials=1,
+    suite="libero_object",
+    skip_setup=False,
+    sim_env=".venv-sim-cpu",
+    record_video=False,
+):
     project = Path(project).resolve()
     if not re.fullmatch(r"[A-Za-z0-9_-]+", run_name):
         raise ValueError("Invalid run name")
@@ -109,6 +117,8 @@ def evaluate(project, run_name, trials=1, suite="libero_object", skip_setup=Fals
                 precision,
                 "--port",
                 "8765",
+                "--seed",
+                str(cfg.get("seed", 42)),
             ],
             cwd=project,
             env=worker_env,
@@ -120,32 +130,33 @@ def evaluate(project, run_name, trials=1, suite="libero_object", skip_setup=Fals
             raise RuntimeError("Owned policy server exited; inspect the run's policy_server.log")
         report["stage"] = "rollout"
         publish()
-        run(
-            [
-                sim_python,
-                "-m",
-                "robot_foundry.cli",
-                "eval-libero",
-                "--checkpoint",
-                checkpoint,
-                "--backend",
-                cfg["backend"],
-                "--suite",
-                suite,
-                "--episodes-per-task",
-                trials,
-                "--max-steps",
-                520 if suite == "libero_10" else 300,
-                "--execution-horizon",
-                4,
-                "--seed",
-                cfg.get("seed", 42),
-                "--output",
-                evaluation_out,
-                "--policy-url",
-                "http://127.0.0.1:8765",
-            ]
-        )
+        rollout = [
+            sim_python,
+            "-m",
+            "robot_foundry.cli",
+            "eval-libero",
+            "--checkpoint",
+            checkpoint,
+            "--backend",
+            cfg["backend"],
+            "--suite",
+            suite,
+            "--episodes-per-task",
+            trials,
+            "--max-steps",
+            520 if suite == "libero_10" else 300,
+            "--execution-horizon",
+            4,
+            "--seed",
+            cfg.get("seed", 42),
+            "--output",
+            evaluation_out,
+            "--policy-url",
+            "http://127.0.0.1:8765",
+        ]
+        if record_video:
+            rollout += ["--record-video"]
+        run(rollout)
         result = read_json(evaluation_out / "report.json")
         report.update(status="complete", stage="complete", rollout_report=result)
     except Exception as error:
@@ -175,9 +186,16 @@ def main():
     )
     parser.add_argument("--skip-setup", action="store_true", help="Reuse an already installed CPU sim env")
     parser.add_argument("--sim-env", default=".venv-sim-cpu")
+    parser.add_argument("--record-video", action="store_true")
     args = parser.parse_args()
     report = evaluate(
-        Path(__file__).resolve().parents[1], args.run, args.trials, args.suite, args.skip_setup, args.sim_env
+        Path(__file__).resolve().parents[1],
+        args.run,
+        args.trials,
+        args.suite,
+        args.skip_setup,
+        args.sim_env,
+        args.record_video,
     )
     print(f"Simulation status: {report['status']}", flush=True)
     return 0 if report["status"] == "complete" else 1

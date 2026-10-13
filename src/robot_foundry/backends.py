@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 
-from .hardware import require_gpu
+from .hardware import probe, require_gpu
 from .io import read_json, write_json
 from .model import TinyChunkPolicy
 
@@ -46,7 +46,17 @@ class TinyBackend:
 
 class SmolBackend:
     def __init__(self, cfg, dataset, device, load_path=None):
-        if device.type == "cpu" and cfg.get("cpu_smoke_only") and cfg.get("steps", 0) <= 2:
+        inference_only = cfg.get("inference_only", False)
+        if inference_only:
+            if load_path is None:
+                raise ValueError("Inference mode requires an exported local checkpoint")
+            if device.type == "cuda":
+                devices = probe([device.index if device.index is not None else torch.cuda.current_device()])
+                if not devices["gpus"] or devices["gpus"][0]["kernel_error"]:
+                    raise RuntimeError("CUDA inference kernel probe failed")
+            elif device.type != "cpu":
+                raise ValueError("SmolVLA inference supports CPU or CUDA")
+        elif device.type == "cpu" and cfg.get("cpu_smoke_only") and cfg.get("steps", 0) <= 2:
             pass  # Explicit one/two-step API validation, not a CPU training recommendation.
         elif device.type == "cuda":
             require_gpu(
@@ -104,11 +114,18 @@ class SmolBackend:
         self.model = SmolVLAPolicy.from_pretrained(
             pretrained, config=policy_cfg, revision=None if load_path else base["revision"]
         )
-        if cfg.get("precision") in ["fp16", "fp32"]:
+        if inference_only:
+            if device.type == "cpu" and cfg.get("precision") != "fp32":
+                raise ValueError("Use FP32 for CPU inference")
+            dtype = torch.float16 if cfg.get("precision") == "fp16" else torch.float32
+            self.model.requires_grad_(False)
+            self.model.to(device=device, dtype=dtype).eval()
+        elif cfg.get("precision") in ["fp16", "fp32"]:
             # FP32 master weights: the upstream VLM defaults to BF16, unsupported by T4 Tensor Cores.
             # AMP casts eligible operations to FP16; trainable gradients stay FP32 for GradScaler.
             self.model.float()
-        self.model.to(device)
+        if not inference_only:
+            self.model.to(device)
         stats = {
             key: {k: torch.tensor(v) for k, v in values.items()}
             for key, values in read_json(dataset.root / "stats.json").items()

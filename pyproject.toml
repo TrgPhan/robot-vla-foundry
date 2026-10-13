@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robot-foundry"
-version = "0.2.3"
+version = "0.2.4"
 description = "Reproducible manipulation experiments and official GR00T/SONIC launchers"
 requires-python = ">=3.11"
 dependencies = ["numpy>=2.0,<3", "torch>=2.7,<3", "pyarrow>=19,<30", "av==15.1.0", "Pillow>=10,<13", "huggingface-hub>=0.34,<2", "filelock>=3.12,<4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff==0.15.16"]
+kaggle = ["kaggle==2.2.4"]
 
 [project.scripts]
 robot-foundry = "robot_foundry.cli:main"

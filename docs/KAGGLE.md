@@ -13,7 +13,7 @@ from pathlib import Path
 
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 subprocess.run([
-    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.3',
+    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.4',
     'https://github.com/TrgPhan/robot-vla-foundry.git', str(PROJECT)
 ], check=True)
 os.chdir(PROJECT)
@@ -162,6 +162,8 @@ Nếu sau compact vẫn chưa đủ 6 GiB, recovery dừng trước train. Xem `
 ## Simulation sau train
 
 Notebook có các cell riêng: đổi `RUN_SIMULATION=True` để chạy LIBERO trong `.venv-sim-cpu`, dùng PyTorch CPU và NumPy 1.26. Policy vẫn chạy GPU trong môi trường train và phục vụ qua localhost HTTP. Installer giữ dự phòng 4 GiB cho CPU, 8 GiB nếu chủ động chọn CUDA; đây là budget bảo thủ, không phải số đo trên Kaggle. `uv --no-cache` tránh giữ thêm bản unpacked wheel sau cài đặt. Simulation lỗi được ghi vào `outputs/RUN_NAME/simulation_status.json` và notebook tiếp tục tới cell lưu kết quả. Mặc định simulation tắt để `Run All` ưu tiên train. Metric open-loop không phải tỷ lệ thành công; protocol benchmark ở [`BENCHMARK.md`](BENCHMARK.md).
+
+V2.4 có `RECORD_VIDEO=True` để lưu MP4 hai camera của từng lượt; CLI tương ứng là `--record-video`. Hướng dẫn tải policy từ output Kaggle và chạy trên Windows/Linux local ở [`LOCAL_SIM.md`](LOCAL_SIM.md).
 
 GR00T N1.7 + SONIC vẫn là nhánh riêng, cần GPU lớn và paired G1 data; notebook Kaggle này không giả lập một model GR00T khi đang dùng SmolVLA.
 

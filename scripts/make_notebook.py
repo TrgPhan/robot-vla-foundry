@@ -32,7 +32,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v2.3'  # Headless simulation processes ignore the notebook's inline plotting backend.
+GIT_REF = 'kaggle-v2.4'  # Includes checkpoint download, local inference and optional rollout videos.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):
@@ -126,6 +126,7 @@ Start with 1 initial state/task, then 50 unique states/task for a full evaluatio
 N_TRIALS = 1  # Set to 50 for a full suite; retain earlier evaluations in a different directory.
 SIM_SUITE = 'libero_object'
 SKIP_SIM_SETUP = False  # True to reuse .venv-sim-cpu, including after an inline-backend import failure.
+RECORD_VIDEO = False  # True saves side-by-side camera MP4s for each trial.
 """,
     ),
     cell(
@@ -135,6 +136,8 @@ SKIP_SIM_SETUP = False  # True to reuse .venv-sim-cpu, including after an inline
                   '--trials', str(N_TRIALS), '--suite', SIM_SUITE]
     if SKIP_SIM_SETUP:
         simulation += ['--skip-setup']
+    if RECORD_VIDEO:
+        simulation += ['--record-video']
     result = subprocess.run([str(x) for x in simulation], check=False)
     status_file = Path(config['output_dir'], 'simulation_status.json')
     if status_file.exists():

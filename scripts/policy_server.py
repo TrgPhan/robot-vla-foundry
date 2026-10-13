@@ -4,7 +4,10 @@ import argparse
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+import torch
+
 from robot_foundry.simulation import CheckpointPredictor
+from robot_foundry.train import seed_everything
 from robot_foundry.transport import decode_observation
 
 
@@ -15,7 +18,13 @@ def main():
     parser.add_argument("--device", default="auto")
     parser.add_argument("--precision", choices=["auto", "fp16", "fp32"], default="auto")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--cpu-threads", type=int, default=2)
     args = parser.parse_args()
+    if args.cpu_threads < 1:
+        raise ValueError("CPU thread count must be positive")
+    torch.set_num_threads(args.cpu_threads)
+    seed_everything(args.seed)
     predictor = CheckpointPredictor(args.checkpoint, args.backend, args.device, args.precision)
 
     class Handler(BaseHTTPRequestHandler):
@@ -38,6 +47,9 @@ def main():
                     "precision": predictor.precision,
                     "horizon": predictor.horizon,
                     "data_fingerprint": predictor.manifest["fingerprint"],
+                    "device": str(predictor.device),
+                    "seed": args.seed,
+                    "cpu_threads": args.cpu_threads,
                 },
             )
 

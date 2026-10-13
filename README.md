@@ -2,13 +2,13 @@
 
 Project nghiên cứu cho tác vụ **gắp vật và đặt vào giỏ**, ưu tiên Kaggle và simulation theo lựa chọn của bạn. Mã nguồn dùng cấu trúc `src/`, `pyproject.toml`, cấu hình JSON, checkpoint có provenance và kiểm thử tự động. Đây là các quy ước tổ chức project Python; project chưa có chứng nhận ISO hoặc kiểm định triển khai robot thực.
 
-**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.3`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.4`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 ## Quyết định kiến trúc
 
 - **Có GPU lớn:** fine-tune **GR00T N1.7** trên LIBERO Object, bổ sung LIBERO Spatial cùng robot Panda; dùng implementation NVIDIA đã khóa commit.
 - **Kaggle GPU khoảng 16 GB:** fine-tune **SmolVLA pretrained** làm nhánh tiết kiệm tài nguyên. Đây là lựa chọn bổ sung do hạn chế phần cứng, không được gọi là GR00T/π₀.₅.
-- **Máy hiện tại RTX A1000 4 GB:** baseline `tiny_bc` để kiểm tra dữ liệu, train, resume và simulation. Nó là CNN + token ngôn ngữ + state + decoder action chunk từ đầu, không phải foundation VLA.
+- **Máy hiện tại RTX A1000 4 GB:** train baseline `tiny_bc` để kiểm tra pipeline; inference FP16 của checkpoint SmolVLA đã lưu cũng chạy được để đánh giá local. TinyBC là CNN + token ngôn ngữ + state + decoder action chunk từ đầu, không phải foundation VLA. Điều kiện VRAM của training SmolVLA vẫn giữ nguyên.
 - **Khi có dữ liệu G1:** GR00T dự đoán 64 token chuyển động và hai vector tay 7 chiều; SONIC v1.1 nhận token để điều khiển toàn thân. Giữ controller pretrained cố định trước khi cân nhắc RL fine-tuning. [Workflow SONIC chính thức](https://nvlabs.github.io/GR00T-WholeBodyControl/tutorials/vla_workflow.html).
 
 SONIC không chỉ điều khiển chân. Cân bằng phụ thuộc cả thân trên, tải vật, tiếp xúc và động lực học. Vì vậy ghép action cánh tay Panda/SO100 với action chân G1 không tạo thành một policy humanoid hợp lệ. Chưa có RGB + state + SONIC token đồng bộ thì chưa thể huấn luyện nhánh G1 cho tác vụ này.
@@ -30,7 +30,7 @@ Xem các báo cáo máy đọc được trong [`reports/`](reports/).
 | DDP/AMP | Hai process Gloo đồng bộ trọng số; resume chính xác sau khi ngắt; FP16 optimizer + GradScaler trên GPU local |
 | Kiểm thử v2 | 20 test pass local; có xử lý overflow và đối chiếu metric DDP với một process |
 
-RMSE không phải success rate. Kết quả simulation của TinyBC chưa đạt yêu cầu thực hiện tác vụ. SmolVLA mới được kiểm tra tích hợp vài bước; chưa có kết quả convergence hoặc full benchmark. Các smoke mới ở [`reports/smolvla_ddp_cpu_smoke.json`](reports/smolvla_ddp_cpu_smoke.json) và [`reports/smolvla_fp16_local_smoke.json`](reports/smolvla_fp16_local_smoke.json) dùng 96 px/H16; không đại diện tốc độ/VRAM của recipe T4 256 px/H50. GR00T/SONIC chưa được train do thiếu GPU/dữ liệu phù hợp. Notebook Kaggle đã kiểm tra cú pháp và các thành phần local, chưa thực thi toàn bộ trong tài khoản Kaggle.
+Bảng trên ghi các smoke ban đầu được lưu trong `reports/`. RMSE không phải success rate; kết quả TinyBC chưa đạt yêu cầu thực hiện tác vụ. Các smoke SmolVLA công khai ở [`reports/smolvla_ddp_cpu_smoke.json`](reports/smolvla_ddp_cpu_smoke.json) và [`reports/smolvla_fp16_local_smoke.json`](reports/smolvla_fp16_local_smoke.json) dùng 96 px/H16; không đại diện tốc độ/VRAM của recipe T4 256 px/H50 hoặc full benchmark. Checkpoint và kết quả riêng tải từ Kaggle được giữ trong `outputs/`, không đưa vào source release. GR00T/SONIC chưa được train do thiếu GPU/dữ liệu phù hợp. Notebook hiện tại được kiểm tra cú pháp và các thành phần local; mỗi lượt chạy Kaggle cần được đánh giá bằng report của chính lượt đó.
 
 ## Cấu trúc
 
@@ -94,6 +94,8 @@ Script mặc định cài PyTorch CPU và NumPy 1.26 trong **venv riêng**, ki�
 Trên Kaggle, `scripts/run_kaggle_sim.py --run TEN_RUN --trials 1` đánh giá checkpoint đã lưu, dùng môi trường CPU cho simulator và policy server GPU trong môi trường train. Lỗi simulation được ghi riêng; notebook vẫn tiếp tục lưu kết quả train. Cách khôi phục lỗi cài `.venv-sim` vì hết disk nằm trong [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 SmolVLA chạy trong môi trường train; simulation gọi policy server trên `127.0.0.1`, như các cell của notebook. Server chỉ phục vụ mô phỏng, không gửi lệnh tới robot. Chi tiết đánh giá và gripper convention ở [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
+
+Để **tải model đã train từ Kaggle và chạy simulation trên máy**, xem [`docs/LOCAL_SIM.md`](docs/LOCAL_SIM.md). `scripts/download_kaggle_run.py` tải policy/run metadata theo version, kiểm tra SHA-256 và khôi phục tokenizer đúng revision; không tải các Python environment trong output. Thêm `--record-video` vào lệnh `run_kaggle_sim.py` để lưu MP4 hai camera cho từng lượt; notebook có tùy chọn `RECORD_VIDEO` tương ứng. Một simulation hoàn tất vẫn có thể có 0% success.
 
 ## GR00T N1.7 trên Linux GPU lớn
 

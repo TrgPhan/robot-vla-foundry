@@ -70,6 +70,7 @@ class CheckpointPredictor:
                 "output_dir": str(self.root.parent),
                 "registry": "configs/datasets.json",
                 "precision": self.precision,
+                "inference_only": True,
             }
             dataset = SimpleNamespace(root=self.root, manifest=self.manifest)
             self.backend = SmolBackend(cfg, dataset, self.device, load_path=self.root)
@@ -129,6 +130,37 @@ def wilson(successes, trials):
     middle = (p + z**2 / (2 * trials)) / den
     radius = z * math.sqrt(p * (1 - p) / trials + z**2 / (4 * trials**2)) / den
     return [max(0.0, middle - radius), min(1.0, middle + radius)]
+
+
+class RolloutVideo:
+    """Record the two camera observations presented to the policy at simulation FPS."""
+
+    def __init__(self, path):
+        import av
+
+        self.av = av
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.container = av.open(str(self.path), mode="w")
+        self.stream = self.container.add_stream("libx264", rate=20)
+        self.stream.pix_fmt = "yuv420p"
+        self.stream.options = {"crf": "23", "preset": "fast"}
+
+    def write(self, obs):
+        pixels = np.concatenate(
+            [obs[k][::-1, ::-1] for k in ["agentview_image", "robot0_eye_in_hand_image"]], axis=1
+        ).copy()
+        self.stream.width, self.stream.height = pixels.shape[1], pixels.shape[0]
+        frame = self.av.VideoFrame.from_ndarray(pixels, format="rgb24")
+        for packet in self.stream.encode(frame):
+            self.container.mux(packet)
+
+    def close(self):
+        try:
+            for packet in self.stream.encode():
+                self.container.mux(packet)
+        finally:
+            self.container.close()
 
 
 def evaluate_libero(args):
@@ -207,14 +239,22 @@ def evaluate_libero(args):
                 success = False
                 chunk = None
                 steps = 0
-                for step in range(args.max_steps):
-                    if step % args.execution_horizon == 0:
-                        chunk = predictor.predict(obs, task.language)
-                    obs, _, done, _ = env.step(decode_libero_action(chunk[step % args.execution_horizon]))
-                    steps = step + 1
-                    success = bool(env.check_success())
-                    if success or done:
-                        break
+                video_path = f"videos/task_{task_id:02d}_state_{episode:02d}.mp4"
+                video = RolloutVideo(output / video_path) if getattr(args, "record_video", False) else None
+                try:
+                    for step in range(args.max_steps):
+                        if step % args.execution_horizon == 0:
+                            chunk = predictor.predict(obs, task.language)
+                        obs, _, done, _ = env.step(decode_libero_action(chunk[step % args.execution_horizon]))
+                        if video:
+                            video.write(obs)
+                        steps = step + 1
+                        success = bool(env.check_success())
+                        if success or done:
+                            break
+                finally:
+                    if video:
+                        video.close()
                 success_count += int(success)
                 trial = {
                     "suite": args.suite,
@@ -225,6 +265,8 @@ def evaluate_libero(args):
                     "success": success,
                     "steps": steps,
                 }
+                if video:
+                    trial["video"] = video_path
                 trials.append(trial)
                 with trials_file.open("a", encoding="utf-8") as f:
                     f.write(json.dumps(trial) + "\n")
@@ -254,6 +296,7 @@ def evaluate_libero(args):
         "max_steps": args.max_steps,
         "execution_horizon": args.execution_horizon,
         "seed": args.seed,
+        "videos": [r["video"] for r in trials if "video" in r],
         "note": "Pooled interval is descriptive; tasks are heterogeneous. No humanoid balance measured.",
     }
     write_json(output / "report.json", report)
