@@ -39,7 +39,9 @@ Không có paired G1 task data hiện tại, nên B là đường mở rộng c�
 
 ## Code cho hướng SONIC
 
-Bootstrap và tạo plan; SONIC execution cần môi trường Isaac Lab riêng. [Training guide](https://nvlabs.github.io/GR00T-WholeBodyControl/user_guide/training.html).
+Nhánh **SONIC v1.1 ONNX + MuJoCo** hiện chạy được trên Windows/Linux CPU, với G1 free-base 29 DOF và video toàn thân. Hướng dẫn setup/inference, phạm vi controller và dữ liệu cần cho VLA ở [`FULLBODY.md`](FULLBODY.md). Motion reference demo này chưa chạy frontend VLA hoặc object manipulation.
+
+Bootstrap và tạo plan cho training/evaluation Isaac Lab; launcher `sonic_plan.py --run` cần môi trường Isaac Lab riêng. [Training guide](https://nvlabs.github.io/GR00T-WholeBodyControl/user_guide/training.html).
 
 ```bash
 python -m robot_foundry.cli bootstrap --repos sonic

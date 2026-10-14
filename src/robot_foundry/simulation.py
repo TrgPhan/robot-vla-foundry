@@ -287,6 +287,10 @@ def evaluate_libero(args):
     report = {
         "suite": args.suite,
         "backend": args.backend,
+        "robot": "franka_panda",
+        "control_scope": "single_arm_manipulation",
+        "whole_body_control": False,
+        "sonic_used": False,
         "checkpoint_sha256": file_hash(model_file),
         "successes": total_success,
         "trials": len(trials),

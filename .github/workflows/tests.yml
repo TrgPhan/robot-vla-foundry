@@ -39,3 +39,12 @@ jobs:
           python -m pip install uv==0.10.11
           python scripts/setup_sim.py --env .venv-sim-ci --python 3.12 --torch-index cpu
           MPLBACKEND=Agg .venv-sim-ci/bin/python -c "import torch, numpy, matplotlib; assert torch.version.cuda is None; assert numpy.__version__ == '1.26.4'; assert matplotlib.get_backend().lower() == 'agg'"
+      - name: Fresh SONIC full-body CPU inference and video
+        env:
+          MUJOCO_GL: osmesa
+          PYOPENGL_PLATFORM: osmesa
+        run: |
+          sudo apt-get install -y libosmesa6
+          python scripts/setup_fullbody_sim.py --env .venv-fullbody-ci
+          .venv-fullbody-ci/bin/python scripts/run_fullbody_sim.py --seconds 1 --output outputs/g1_sonic_ci
+          .venv-fullbody-ci/bin/python -c "import json, av; from pathlib import Path; p=Path('outputs/g1_sonic_ci'); r=json.loads((p/'report.json').read_text()); assert r['free_base'] and not r['fall_detected'] and not r['vla_used']; c=av.open(str(p/'fullbody.mp4')); assert sum(1 for f in c.decode(video=0)) == 75; c.close()"

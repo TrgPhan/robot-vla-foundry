@@ -1,0 +1,266 @@
+{
+  "status": "complete",
+  "robot": "unitree_g1_29dof",
+  "controller": "sonic_v1_1",
+  "input_mode": "official_g1_reference_encoder",
+  "vla_used": false,
+  "kaggle_panda_checkpoint_used": false,
+  "scope": "full-body motion tracking smoke; no manipulation benchmark",
+  "free_base": true,
+  "elastic_band": false,
+  "physics_hz": 500,
+  "control_hz": 50,
+  "video_fps": 50,
+  "warmup_s": 0.5,
+  "requested_tracking_s": 9.1,
+  "completed_control_steps": 480,
+  "completed_requested_duration": true,
+  "fall_criterion": {
+    "min_pelvis_height_m": 0.35,
+    "max_tilt_deg": 75
+  },
+  "fall_detected": false,
+  "failure": null,
+  "min_base_height_m": 0.7452018635729752,
+  "max_tilt_deg": 8.589629167247615,
+  "mean_joint_rmse_rad": 0.107511632139094,
+  "onnx_providers": [
+    "CPUExecutionProvider"
+  ],
+  "inference_p50_ms": 6.03384998976253,
+  "inference_p95_ms": 7.494334984221491,
+  "elapsed_wall_s": 11.457598400011193,
+  "video": "fullbody.mp4",
+  "provenance": {
+    "robot": "unitree_g1_29dof",
+    "controller_variant": "sonic_v1_1",
+    "upstream": {
+      "repo": "NVlabs/GR00T-WholeBodyControl",
+      "sha": "b042411fae38ee4d1af9aac82a37a1f8d14d6dd0"
+    },
+    "model": {
+      "repo_id": "nvidia/GEAR-SONIC",
+      "revision": "6733128a3d8a523b1418b06bca3cdf61c8b0987f",
+      "kind": "model",
+      "license": "other",
+      "role": "frozen whole-body G1 controller"
+    },
+    "motion": "walking_quip_360_R_002__A428",
+    "files": {
+      "gear_sonic_deploy/g1/scene_29dof.xml": {
+        "sha256": "a857005b8dfda038705c9ffc14a4c8b6d7ea8cd2c06f88b7f884874533b7f5ae",
+        "bytes": 1031
+      },
+      "gear_sonic_deploy/g1/g1_29dof_old.xml": {
+        "sha256": "58660a6f1d0d33ffd8ee967ab3860def53e3327d956cb009dd1385ddaf430f56",
+        "bytes": 35824
+      },
+      "gear_sonic_deploy/g1/meshes/pelvis.STL": {
+        "sha256": "5ba6bbc888e630550140d3c26763f10206da8c8bd30ed886b8ede41c61f57a31",
+        "bytes": 1060884
+      },
+      "gear_sonic_deploy/g1/meshes/pelvis_contour_link.STL": {
+        "sha256": "5cc5c2c7a312329e3feeb2b03d3fc09fc29705bd01864f6767e51be959662420",
+        "bytes": 1805184
+      },
+      "gear_sonic_deploy/g1/meshes/left_hip_pitch_link.STL": {
+        "sha256": "4725168105ee768ee31638ef22b53f6be2d7641bfd7cfefe803488d884776fa4",
+        "bytes": 181684
+      },
+      "gear_sonic_deploy/g1/meshes/left_hip_roll_link.STL": {
+        "sha256": "91f25922ee8a7c3152790051bebad17b4d9cd243569c38fe340285ff93a97acf",
+        "bytes": 192184
+      },
+      "gear_sonic_deploy/g1/meshes/left_hip_yaw_link.STL": {
+        "sha256": "a16d88aa6ddac8083aa7ad55ed317bea44b1fa003d314fba88965b7ed0f3b55b",
+        "bytes": 296284
+      },
+      "gear_sonic_deploy/g1/meshes/left_knee_link.STL": {
+        "sha256": "8d92b9e3d3a636761150bb8025e32514c4602b91c7028d523ee42b3e632de477",
+        "bytes": 854884
+      },
+      "gear_sonic_deploy/g1/meshes/left_ankle_pitch_link.STL": {
+        "sha256": "d49e3abc6f5b12e532062cd575b87b5ef40cd2a3fc18f54a1ca5bba4f773d51d",
+        "bytes": 71184
+      },
+      "gear_sonic_deploy/g1/meshes/left_ankle_roll_link.STL": {
+        "sha256": "c4092af943141d4d9f74232f3cfa345afc6565f46a077793b8ae0e68b39dc33f",
+        "bytes": 653384
+      },
+      "gear_sonic_deploy/g1/meshes/right_hip_pitch_link.STL": {
+        "sha256": "e4f3c99d7f4a7d34eadbef9461fc66e3486cb5442db1ec50c86317d459f1a9c6",
+        "bytes": 181284
+      },
+      "gear_sonic_deploy/g1/meshes/right_hip_roll_link.STL": {
+        "sha256": "4c254ef66a356f492947f360dd931965477b631e3fcc841f91ccc46d945d54f6",
+        "bytes": 192684
+      },
+      "gear_sonic_deploy/g1/meshes/right_hip_yaw_link.STL": {
+        "sha256": "e479c2936ca2057e9eb2f7dff6c189b7419d7b8484dea0b298cbb36a2a6aa668",
+        "bytes": 296284
+      },
+      "gear_sonic_deploy/g1/meshes/right_knee_link.STL": {
+        "sha256": "63c4008449c9bbe701a6e2b557b7a252e90cf3a5abcf54cee46862b9a69f8ec8",
+        "bytes": 852284
+      },
+      "gear_sonic_deploy/g1/meshes/right_ankle_pitch_link.STL": {
+        "sha256": "15be426539ec1be70246d4d82a168806db64a41301af8b35c197a33348c787a9",
+        "bytes": 71184
+      },
+      "gear_sonic_deploy/g1/meshes/right_ankle_roll_link.STL": {
+        "sha256": "4b66222ea56653e627711b56d0a8949b4920da5df091da0ceb343f54e884e3a5",
+        "bytes": 653784
+      },
+      "gear_sonic_deploy/g1/meshes/waist_yaw_link.STL": {
+        "sha256": "2883f20e03f09b669b5b4ce10677ee6b5191c0934b584d7cbaef2d0662856ffb",
+        "bytes": 336284
+      },
+      "gear_sonic_deploy/g1/meshes/waist_roll_link.STL": {
+        "sha256": "34f0aa73f41131230be4d25876c944fdf6c24d62553f199ff8b980c15e8913df",
+        "bytes": 24184
+      },
+      "gear_sonic_deploy/g1/meshes/torso_link.STL": {
+        "sha256": "e96d023f0368a4e3450b86ca5d4f10227d8141156a373e7da8cb3c93266523e0",
+        "bytes": 2232984
+      },
+      "gear_sonic_deploy/g1/meshes/logo_link.STL": {
+        "sha256": "8571a0a19bc4916fa55f91449f51d5fdefd751000054865a842449429d5f155b",
+        "bytes": 243384
+      },
+      "gear_sonic_deploy/g1/meshes/head_link.STL": {
+        "sha256": "d297328b3569fc85074355e76cba6c889d19de5361224bcd3c5b8ce82e13b9b6",
+        "bytes": 337584
+      },
+      "gear_sonic_deploy/g1/meshes/waist_support_link.STL": {
+        "sha256": "1fae9e1bb609848a1667d32eed8d6083ae443538a306843056a2a660f1b2926a",
+        "bytes": 150484
+      },
+      "gear_sonic_deploy/g1/meshes/left_shoulder_pitch_link.STL": {
+        "sha256": "f0d1cfd02fcf0d42f95e678eeca33da3afbcc366ffba5c052847773ec4f31d52",
+        "bytes": 176784
+      },
+      "gear_sonic_deploy/g1/meshes/left_shoulder_roll_link.STL": {
+        "sha256": "fb9df21687773522598dc384f1a2945c7519f11cbc8bd372a49170316d6eee88",
+        "bytes": 400284
+      },
+      "gear_sonic_deploy/g1/meshes/left_shoulder_yaw_link.STL": {
+        "sha256": "1aa97e9748e924336567992181f78c7cd0652fd52a4afcca3df6b2ef6f9e712e",
+        "bytes": 249184
+      },
+      "gear_sonic_deploy/g1/meshes/left_elbow_link.STL": {
+        "sha256": "fa752198accd104d5c4c3a01382e45165b944fbbc5acce085059223324e5bed3",
+        "bytes": 88784
+      },
+      "gear_sonic_deploy/g1/meshes/left_wrist_roll_link.STL": {
+        "sha256": "edc387c9a0ba8c2237e9b296d32531426fabeb6f53e58df45c76106bca74148c",
+        "bytes": 356184
+      },
+      "gear_sonic_deploy/g1/meshes/left_wrist_pitch_link.STL": {
+        "sha256": "b251d8e05047f695d0f536cd78c11973cfa4e78d08cfe82759336cc3471de3a9",
+        "bytes": 85984
+      },
+      "gear_sonic_deploy/g1/meshes/left_wrist_yaw_link.STL": {
+        "sha256": "83f8fb3a726bf9613d65dd14f0f447cb918c3c95b3938042a0c9c09749267d3b",
+        "bytes": 318684
+      },
+      "gear_sonic_deploy/g1/meshes/left_rubber_hand.STL": {
+        "sha256": "cff2221a690fa69303f61fce68f2d155c1517b52efb6ca9262dd56e0bc6e70fe",
+        "bytes": 2287484
+      },
+      "gear_sonic_deploy/g1/meshes/right_shoulder_pitch_link.STL": {
+        "sha256": "24cdb387e0128dfe602770a81c56cdce3a0181d34d039a11d1aaf8819b7b8c02",
+        "bytes": 176784
+      },
+      "gear_sonic_deploy/g1/meshes/right_shoulder_roll_link.STL": {
+        "sha256": "962b97c48f9ce9e8399f45dd9522e0865d19aa9fd299406b2d475a8fc4a53e81",
+        "bytes": 401884
+      },
+      "gear_sonic_deploy/g1/meshes/right_shoulder_yaw_link.STL": {
+        "sha256": "a0b76489271da0c72461a344c9ffb0f0c6e64f019ea5014c1624886c442a2fe5",
+        "bytes": 249984
+      },
+      "gear_sonic_deploy/g1/meshes/right_elbow_link.STL": {
+        "sha256": "1be925d7aa268bb8fddf5362b9173066890c7d32092c05638608126e59d1e2ab",
+        "bytes": 88784
+      },
+      "gear_sonic_deploy/g1/meshes/right_wrist_roll_link.STL": {
+        "sha256": "a7ee9212ff5b94d6cb7f52bb1bbf3f352194d5b598acff74f4c77d340c5b344f",
+        "bytes": 356084
+      },
+      "gear_sonic_deploy/g1/meshes/right_wrist_pitch_link.STL": {
+        "sha256": "d22f8f3b3127f15a63e5be1ee273cd5075786c3142f1c3d9f76cbf43d2a26477",
+        "bytes": 79584
+      },
+      "gear_sonic_deploy/g1/meshes/right_wrist_yaw_link.STL": {
+        "sha256": "bc9dece2d12509707e0057ba2e48df8f3d56db0c79410212963a25e8a50f61a6",
+        "bytes": 341484
+      },
+      "gear_sonic_deploy/g1/meshes/right_rubber_hand.STL": {
+        "sha256": "99533b778bca6246144fa511bb9d4e555e075c641f2a0251e04372869cd99d67",
+        "bytes": 2192684
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/metadata.txt": {
+        "sha256": "fd89792ca764b2f704df122015c1d7cf43d7667f9d7545cc680585a45df1c859",
+        "bytes": 466
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/joint_pos.csv": {
+        "sha256": "49aa248f12d69304a928191e9942ad3236991dc82bbf001e0ced9442d409a42f",
+        "bytes": 125123
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/joint_vel.csv": {
+        "sha256": "ad103e8e4bacbb057461305ccd6cfb6aecbe86179b4077afd7ffdce1ad659b1a",
+        "bytes": 125250
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/body_pos.csv": {
+        "sha256": "711ba143ef134e70c277b594a4f2206a227daf58c25c36b1b4f64f10e6954377",
+        "bytes": 180909
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/body_quat.csv": {
+        "sha256": "ac868ecb5abfab8251563bec2e0eb3c46ff9200874c914cc2f6f981220da0d62",
+        "bytes": 242492
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/body_lin_vel.csv": {
+        "sha256": "d6a3a422928e04d13259b3c00c4d12baea0b94cee9892d8b50811d6487005254",
+        "bytes": 184968
+      },
+      "gear_sonic_deploy/reference/example/walking_quip_360_R_002__A428/body_ang_vel.csv": {
+        "sha256": "df7e5fa6819cd52420c281dbe93635c16714bf30101f7b0b4c679c4412820e41",
+        "bytes": 181741
+      },
+      "policy/sonic_v1_1/model_encoder.onnx": {
+        "sha256": "fb97de22819b2057b41459802128d91723d91a25f0ad73e7bfc41a9cf8365bae",
+        "bytes": 50117796
+      },
+      "policy/sonic_v1_1/model_decoder.onnx": {
+        "sha256": "34bae8570d4a4421a5391a5c2befd745d4a02d182ec539e5f9da44c091c67509",
+        "bytes": 149778638
+      },
+      "policy/sonic_v1_1/observation_config.yaml": {
+        "sha256": "4a67713b310932e50aca81f19188c8d76013148e98b15c8b5bbea995f12e59f0",
+        "bytes": 2475
+      }
+    }
+  },
+  "verification": {
+    "platform": "Windows-11-10.0.26100-SP0",
+    "python": "3.12.10",
+    "video_decoded_frames": 480,
+    "video_width": 960,
+    "video_height": 720,
+    "video_fps": 50,
+    "verified_assets": 48,
+    "runtime_versions": {
+      "mujoco": "3.3.1",
+      "onnxruntime": "1.23.2",
+      "numpy": "1.26.4",
+      "av": "15.1.0",
+      "Pillow": "11.3.0",
+      "huggingface-hub": "1.33.0"
+    },
+    "source_sha256": {
+      "src/robot_foundry/fullbody.py": "23263f89ad5c68b92f766c3f10fb7ce9dfd29702f73028eff6e8536e0262157c",
+      "src/robot_foundry/sonic_assets.py": "a81a26437a348304b629fa2364b3985eeeaa796e01b41f57e0ff899cda8bcae7",
+      "scripts/run_fullbody_sim.py": "386c6d55e50d18801a38becaf6369f5906a3b6cb52d7d4f30161b0b865852e1e"
+    }
+  }
+}

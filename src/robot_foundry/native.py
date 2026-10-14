@@ -14,59 +14,7 @@ import pyarrow.parquet as pq
 from .datasets import episode_paths
 from .hardware import require_gpu
 from .io import read_json, write_json
-
-
-def check_checkout(key, path, lock_path="configs/upstream_lock.json"):
-    lock = read_json(lock_path)[key]
-    actual = subprocess.run(
-        ["git", "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True, check=True
-    ).stdout.strip()
-    if actual != lock["sha"]:
-        raise ValueError(f"{key} revision mismatch: expected {lock['sha']}, got {actual}")
-    return lock
-
-
-def bootstrap(keys, vendor="vendor"):
-    locks = read_json("configs/upstream_lock.json")
-    for key in keys:
-        entry = locks[key]
-        root = Path(vendor) / key
-        if (root / ".git").exists():
-            check_checkout(key, root)
-        env = dict(os.environ, GIT_LFS_SKIP_SMUDGE="1")
-        if not (root / ".git").exists():
-            if root.exists() and any(root.iterdir()):
-                raise FileExistsError(f"Nonempty destination: {root}")
-            root.mkdir(parents=True, exist_ok=True)
-            for args in [
-                ["init"],
-                ["remote", "add", "origin", f"https://github.com/{entry['repo']}.git"],
-                ["fetch", "--depth", "1", "origin", entry["sha"]],
-                ["checkout", "--detach", "FETCH_HEAD"],
-            ]:
-                subprocess.run(
-                    ["git", "-c", "core.longpaths=true", "-C", str(root), *args], env=env, check=True
-                )
-        # Do not install large CUDA/Isaac dependencies into the user's existing Python environment.
-        if key == "groot":
-            # Only LIBERO is used by these recipes; other simulators have large, unrelated asset trees.
-            subprocess.run(
-                [
-                    "git",
-                    "-c",
-                    "core.longpaths=true",
-                    "-C",
-                    str(root),
-                    "submodule",
-                    "update",
-                    "--init",
-                    "--recursive",
-                    "external_dependencies/LIBERO",
-                ],
-                env=env,
-                check=True,
-            )
-        check_checkout(key, root)
+from .upstream import bootstrap as bootstrap, check_checkout as check_checkout
 
 
 def materialize(source, dest):
@@ -210,33 +158,40 @@ def validate_g1_dataset(root):
         raise ValueError("SONIC recipe expects LeRobot v2 at 50 Hz; use NVIDIA's collection/export stack.")
     expected = {"motion_token": 64, "left_hand_joints": 7, "right_hand_joints": 7}
     numeric_columns = set()
+    occupied = {}
+
+    def validate_slice(kind, key, dim, default_column):
+        field = modality.get(kind, {}).get(key)
+        if not isinstance(field, dict):
+            raise ValueError(f"Missing/invalid SONIC {kind} field {key}: expected {dim} values.")
+        start, end = field.get("start"), field.get("end")
+        if type(start) is not int or type(end) is not int or start < 0 or end - start != dim:
+            raise ValueError(f"Invalid {kind} slice {key}: expected {dim} values at a nonnegative offset.")
+        column = field.get("original_key", default_column)
+        feature = info["features"].get(column)
+        if feature is None or len(feature["shape"]) != 1 or feature["shape"][0] < end:
+            raise ValueError(f"{kind} mapping refers to an absent or short feature: {column}")
+        indexes = set(range(start, end))
+        used = occupied.setdefault((kind, column), set())
+        if used & indexes:
+            raise ValueError(f"Overlapping G1 {kind} slices in {column}: {key}")
+        used.update(indexes)
+        numeric_columns.add(column)
+
     for key, dim in expected.items():
-        field = modality.get("action", {}).get(key)
-        if field is None or field["end"] - field["start"] != dim:
-            raise ValueError(f"Missing/invalid SONIC action field {key}: expected {dim} values.")
-        column = field.get("original_key", "action")
-        feature = info["features"].get(column)
-        if feature is None or len(feature["shape"]) != 1 or feature["shape"][0] < field["end"]:
-            raise ValueError(f"Action mapping refers to an absent or short feature: {column}")
-        numeric_columns.add(column)
-    for key in [
-        "left_leg",
-        "right_leg",
-        "waist",
-        "left_arm",
-        "right_arm",
-        "left_hand",
-        "right_hand",
-        "projected_gravity",
-    ]:
-        if key not in modality.get("state", {}):
-            raise ValueError(f"Missing G1 proprioception: {key}")
-        field = modality["state"][key]
-        column = field.get("original_key", "observation.state")
-        feature = info["features"].get(column)
-        if feature is None or len(feature["shape"]) != 1 or feature["shape"][0] < field["end"]:
-            raise ValueError(f"State mapping refers to an absent or short feature: {column}")
-        numeric_columns.add(column)
+        validate_slice("action", key, dim, "action")
+    state_dims = {
+        "left_leg": 6,
+        "right_leg": 6,
+        "waist": 3,
+        "left_arm": 7,
+        "right_arm": 7,
+        "left_hand": 7,
+        "right_hand": 7,
+        "projected_gravity": 3,
+    }
+    for key, dim in state_dims.items():
+        validate_slice("state", key, dim, "observation.state")
     if "ego_view" not in modality.get("video", {}):
         raise ValueError("Missing G1 ego_view camera.")
     # Identity is mandatory because the token codebook must match the deployed controller.

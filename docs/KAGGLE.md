@@ -13,7 +13,7 @@ from pathlib import Path
 
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 subprocess.run([
-    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.4',
+    'git', 'clone', '--depth', '1', '--branch', 'kaggle-v2.5',
     'https://github.com/TrgPhan/robot-vla-foundry.git', str(PROJECT)
 ], check=True)
 os.chdir(PROJECT)

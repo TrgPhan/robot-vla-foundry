@@ -2,7 +2,7 @@
 
 Project nghiên cứu cho tác vụ **gắp vật và đặt vào giỏ**, ưu tiên Kaggle và simulation theo lựa chọn của bạn. Mã nguồn dùng cấu trúc `src/`, `pyproject.toml`, cấu hình JSON, checkpoint có provenance và kiểm thử tự động. Đây là các quy ước tổ chức project Python; project chưa có chứng nhận ISO hoặc kiểm định triển khai robot thực.
 
-**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.4`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.5`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
 ## Quyết định kiến trúc
 
@@ -96,6 +96,17 @@ Trên Kaggle, `scripts/run_kaggle_sim.py --run TEN_RUN --trials 1` đánh giá c
 SmolVLA chạy trong môi trường train; simulation gọi policy server trên `127.0.0.1`, như các cell của notebook. Server chỉ phục vụ mô phỏng, không gửi lệnh tới robot. Chi tiết đánh giá và gripper convention ở [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
 
 Để **tải model đã train từ Kaggle và chạy simulation trên máy**, xem [`docs/LOCAL_SIM.md`](docs/LOCAL_SIM.md). `scripts/download_kaggle_run.py` tải policy/run metadata theo version, kiểm tra SHA-256 và khôi phục tokenizer đúng revision; không tải các Python environment trong output. Thêm `--record-video` vào lệnh `run_kaggle_sim.py` để lưu MP4 hai camera cho từng lượt; notebook có tùy chọn `RECORD_VIDEO` tương ứng. Một simulation hoàn tất vẫn có thể có 0% success.
+
+## G1/SONIC full-body local
+
+Để xem **G1 full body chạy thật trên máy local**, dùng nhánh SONIC ONNX/MuJoCo độc lập:
+
+```powershell
+python scripts/setup_fullbody_sim.py
+.venv-fullbody/Scripts/python.exe scripts/run_fullbody_sim.py --output outputs/g1_sonic_fullbody
+```
+
+Lượt local đã chạy 9,6 giây trên G1 free-base, không dùng elastic band, có video toàn thân và telemetry. Đây là SONIC pretrained theo motion tham chiếu; VLA Kaggle Panda chưa điều khiển G1. Xem [`docs/FULLBODY.md`](docs/FULLBODY.md) và [`reports/fullbody_sonic_smoke.json`](reports/fullbody_sonic_smoke.json). Profile ONNX chạy CPU, không cần GPU train. Muốn humanoid gắp vật cần paired G1 data, hand controller và checkpoint VLA đúng embodiment.
 
 ## GR00T N1.7 trên Linux GPU lớn
 

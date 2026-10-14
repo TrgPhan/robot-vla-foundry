@@ -1,0 +1,8 @@
+# Lightweight SONIC ONNX + MuJoCo profile; no PyTorch/Isaac installation required.
+numpy==1.26.4
+mujoco==3.3.1
+onnxruntime==1.23.2
+av==15.1.0
+Pillow==11.3.0
+PyYAML==6.0.3
+huggingface-hub==1.33.0

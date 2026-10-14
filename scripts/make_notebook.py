@@ -19,6 +19,8 @@ cells = [
 Repository: https://github.com/TrgPhan/robot-vla-foundry
 
 Enable **Internet** and a **GPU** in Kaggle Settings. No Dataset upload or GitHub token is needed.
+**Scope: Panda arm manipulation only. This notebook does not train G1/full-body control.**
+For SONIC G1 reference simulation, see docs/FULLBODY.md.
 The default is pretrained SmolVLA with automatic 1/2-GPU detection; select **GPU T4 x2** for DDP.
 Each GPU needs >=14 GiB VRAM. GR00T has a separate >=40 GB Linux recipe.
 Run the 20-step smoke experiment first; then use a fresh name for full training.
@@ -32,7 +34,7 @@ full Kaggle training depends on the allocated hardware and network.
 import os, sys, subprocess, shutil, json
 
 REPO_URL = 'https://github.com/TrgPhan/robot-vla-foundry.git'
-GIT_REF = 'kaggle-v2.4'  # Includes checkpoint download, local inference and optional rollout videos.
+GIT_REF = 'kaggle-v2.5'  # Includes checkpoint download, local inference and optional rollout videos.
 PROJECT = Path('/kaggle/working/robot-vla-foundry')
 
 def run(argv, **kwargs):
