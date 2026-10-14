@@ -2,7 +2,9 @@
 
 ## Manipulation
 
-Benchmark chính là **LIBERO Object**: 10 task gắp các vật khác nhau vào giỏ. Spatial là benchmark phụ để kiểm tra vị trí tương đối. Đây là Panda manipulation, không đo cân bằng humanoid. [LIBERO chính thức](https://libero-project.github.io/main.html), [NVIDIA benchmark workflow](https://github.com/NVIDIA/Isaac-GR00T/blob/main/examples/LIBERO/README.md).
+Benchmark nhánh **Panda manipulation** là **LIBERO Object**: 10 task gắp các vật khác nhau vào giỏ. Spatial kiểm tra vị trí tương đối. Đây không đo cân bằng humanoid. [LIBERO chính thức](https://libero-project.github.io/main.html), [NVIDIA benchmark workflow](https://github.com/NVIDIA/Isaac-GR00T/blob/main/examples/LIBERO/README.md).
+
+Notebook G1 mới dùng **motion tracking trong MuJoCo** trên held-out scenario seeds của cùng primitive nguồn. Threshold định trước: mean joint RMSE <=0,25 rad, mean root orientation error <=0,35 rad, hoàn tất window, pelvis >=0,35 m và tilt <=75°. Chạy learned VLA và train-mean token baseline trên cùng cases; report xác minh zero teacher calls sau initialization. Đây là benchmark nội bộ, không phải unseen-task hoặc gắp vật. Chi tiết tại [`G1_TRAINING.md`](G1_TRAINING.md); smoke 3 giây hiện cả learned và mean baseline đều qua, chưa chứng minh learning gain.
 
 1. Dữ liệu: episode-disjoint train/val/test. Stats lấy từ train. Selection checkpoint theo validation normalized RMSE.
 2. Open-loop: normalized RMSE, raw MAE từng chiều, first-action error, padding mask. Không gộp centimetre, radian, gripper thành một raw MAE vật lý có ý nghĩa.
@@ -53,4 +55,4 @@ SONIC motion tracking: success không early termination; local/global MPJPE; joi
 
 Task humanoid: báo cáo cả **manipulation success và fall-free success**; time-to-completion, base roll/pitch p95/max, foot slip, wrist error, joint/torque-limit events, dropped object và payload. Define fall/contact thresholds và simulator robot/object model trước test. Thử standing reach trước, sau đó payload và perturbations. MPJPE tốt trên mocap không chứng minh gắp vật tốt hoặc sim-to-real an toàn.
 
-Project hiện chưa tạo benchmark object-interaction G1/Isaac Lab riêng, chưa có dữ liệu train G1 và chưa đo các metric này. Các cấu hình SONIC/G1 là đường tích hợp với upstream, cần dữ liệu và tài nguyên phù hợp.
+Project có paired G1 motion data/trainer và motion-tracking evaluation; chưa tạo benchmark object-interaction G1/Isaac Lab riêng hoặc đo các metric manipulation/payload trên. Cấu hình GR00T G1 tương tác vẫn cần dữ liệu và tài nguyên phù hợp.

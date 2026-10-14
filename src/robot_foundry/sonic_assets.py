@@ -23,10 +23,43 @@ def prepare_sonic_assets(repo, destination, motion_name):
     lock = check_checkout("sonic", repo)
     model = read_json("configs/datasets.json")["sonic"]
     destination.mkdir(parents=True, exist_ok=True)
-    if shutil.disk_usage(destination).free < 2 * 2**30:
-        raise OSError(28, "Reserve at least 2 GiB for SONIC models/assets and rollout outputs")
+    cached_models = [
+        destination / "policy/sonic_v1_1" / name
+        for name in ["model_encoder.onnx", "model_decoder.onnx", "observation_config.yaml"]
+    ]
+    cached_motion = destination / "gear_sonic_deploy/reference/example" / motion_name
+    robot_xml = destination / "gear_sonic_deploy/g1/g1_29dof_old.xml"
+    geometry_cached = False
+    if robot_xml.is_file():
+        try:
+            geometry_cached = all(
+                (robot_xml.parent / "meshes" / x.attrib["file"]).is_file()
+                for x in ET.parse(robot_xml).iter("mesh")
+            )
+        except ET.ParseError:
+            pass
+    reusable = (
+        geometry_cached
+        and all(p.is_file() and p.stat().st_size > 0 for p in cached_models)
+        and all(
+            (cached_motion / name).is_file()
+            for name in [
+                "joint_pos.csv",
+                "joint_vel.csv",
+                "body_pos.csv",
+                "body_quat.csv",
+                "body_lin_vel.csv",
+                "body_ang_vel.csv",
+            ]
+        )
+    )
+    reserve = 128 * 2**20 if reusable else 2 * 2**30
+    if shutil.disk_usage(destination).free < reserve:
+        raise OSError(28, f"SONIC needs {reserve / 2**30:.2f} GiB free for assets/rollout outputs")
 
     def copy_upstream(relative):
+        if Path(relative).is_absolute() or ".." in Path(relative).parts:
+            raise ValueError("Expected a relative committed asset path")
         # Read the committed bytes, so local modifications cannot silently change the robot/reference.
         content = subprocess.run(
             ["git", "-C", str(repo), "show", f"{lock['sha']}:{relative}"],
@@ -34,9 +67,10 @@ def prepare_sonic_assets(repo, destination, motion_name):
             check=True,
         ).stdout
         target = destination / relative
-        if not target.resolve().is_relative_to(destination):
-            raise ValueError("Upstream asset path must stay inside destination")
         target.parent.mkdir(parents=True, exist_ok=True)
+        resolved = target.resolve()
+        if not resolved.is_relative_to(destination):
+            raise ValueError(f"Upstream asset path must stay inside destination: {resolved}")
         pointer = content.startswith(b"version https://git-lfs.github.com/spec/v1")
         expected = re.search(rb"oid sha256:([a-f0-9]{64})", content) if pointer else None
         digest = expected[1].decode() if expected else hashlib.sha256(content).hexdigest()

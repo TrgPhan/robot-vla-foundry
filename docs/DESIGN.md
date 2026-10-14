@@ -1,6 +1,6 @@
 # Review ý tưởng và phương án cuối cùng
 
-Ngày khảo sát: 12/10/2026. Bạn chưa có robot/dữ liệu G1 và muốn ưu tiên Kaggle/simulation.
+Ngày khảo sát ban đầu: 12/10/2026; cập nhật nhánh G1 motion: 14/10/2026. Bạn chưa có robot/dữ liệu G1 và chọn ưu tiên train đi bộ/cử động toàn thân bằng simulation trên Kaggle.
 
 ## Phần hợp lý trong ý tưởng
 
@@ -35,7 +35,9 @@ Hiểu “psi” là họ π₀/π₀.₅ của Physical Intelligence. [OpenPI c
 
 **B — humanoid tương tác:** chọn G1, SONIC v1.1 frozen. Ghi/giả lập 50–100 demonstration thành công với cùng camera, tay, payload và controller; split theo session/object trước khi train. Phải có cả thao tác vật, RGB, state, token và hand labels. Dữ liệu motion không có object dynamics không kiểm chứng được pickup/carrying.
 
-Không có paired G1 task data hiện tại, nên B là đường mở rộng có validator/launcher, không phải một model humanoid đã train.
+**B0 — humanoid motion trước:** hiện có collector tạo paired RGB/state70/token64 bằng SONIC/MuJoCo và trainer SmolVLA G1 trên T4 ×2. Learned runner nạp checkpoint đó, đưa token dự đoán vào decoder để điều khiển 29 DOF. Local đã chạy optimizer/save/reload/control; chất lượng hội tụ và gắp vật chưa được chứng minh. [`G1_TRAINING.md`](G1_TRAINING.md) mô tả implementation.
+
+B vẫn cần paired manipulation data/hand controller; motion B0 không được đánh giá thành pickup/carrying. Nhánh SmolVLA này hỗ trợ phần cứng Kaggle, không gọi là GR00T.
 
 ## Code cho hướng SONIC
 

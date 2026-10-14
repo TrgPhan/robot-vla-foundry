@@ -1,0 +1,59 @@
+{
+  "kind": "SmolVLA G1 optimizer/export/reload/control integration smoke",
+  "trained_optimizer_updates": 2,
+  "amp_skipped_updates": 0,
+  "trainable_parameters": 99988544,
+  "peak_cuda_mib": [
+    3141.20556640625
+  ],
+  "training_resolution": 96,
+  "training_horizon": 16,
+  "policy_chunk_shape": [
+    16,
+    64
+  ],
+  "state_dimension": 70,
+  "action_dimension": 64,
+  "checkpoint_sha256": "fc1cbb22297c367c4f0a21b08ae2624c2e2e6a3a971d725c6175c1585309c17c",
+  "teacher_calls_after_initialization": 0,
+  "learned_tracking_passes": 2,
+  "trials": 2,
+  "tracking_frames_per_trial": 150,
+  "mean_token_baseline_passes": 2,
+  "latent_test_rmse_smoke_cap2": 1.311873983400602,
+  "latent_mean_action_baseline_rmse_smoke_cap2": 0.7677654638270243,
+  "controller_identity": {
+    "variant": "sonic_v1_1",
+    "model_encoder.onnx": "fb97de22819b2057b41459802128d91723d91a25f0ad73e7bfc41a9cf8365bae",
+    "model_decoder.onnx": "34bae8570d4a4421a5391a5c2befd745d4a02d182ec539e5f9da44c091c67509",
+    "observation_config.yaml": "4a67713b310932e50aca81f19188c8d76013148e98b15c8b5bbea995f12e59f0",
+    "fingerprint": "10dc4c5b2accffaea7a00c45cec01b4cddc6d38e6f0144d92dcf24aa6297672e"
+  },
+  "video_verification": [
+    {
+      "video": "videos/task_00_seed_44.mp4",
+      "frames": 150,
+      "width": 512,
+      "height": 512,
+      "fps": "50"
+    },
+    {
+      "video": "videos/task_01_seed_10044.mp4",
+      "frames": 150,
+      "width": 512,
+      "height": 512,
+      "fps": "50"
+    }
+  ],
+  "limitations": [
+    "Only 2 optimizer updates, not full convergence",
+    "Short 3 second seen-primitive held-out-scenario smoke",
+    "Mean-token baseline also passes; no demonstrated learning gain",
+    "No grasping/dexterous hand/payload/robot-real evaluation"
+  ],
+  "typed_parquet_export_verified": {
+    "state": "float32[70]",
+    "action": "float32[64]",
+    "independent_schema_validation_frames": 120
+  }
+}

@@ -48,3 +48,14 @@ jobs:
           python scripts/setup_fullbody_sim.py --env .venv-fullbody-ci
           .venv-fullbody-ci/bin/python scripts/run_fullbody_sim.py --seconds 1 --output outputs/g1_sonic_ci
           .venv-fullbody-ci/bin/python -c "import json, av; from pathlib import Path; p=Path('outputs/g1_sonic_ci'); r=json.loads((p/'report.json').read_text()); assert r['free_base'] and not r['fall_detected'] and not r['vla_used']; c=av.open(str(p/'fullbody.mp4')); assert sum(1 for f in c.decode(video=0)) == 75; c.close()"
+      - name: Paired G1 collection, optimizer training and learned full-body rollout
+        env:
+          MUJOCO_GL: osmesa
+          PYOPENGL_PLATFORM: osmesa
+        run: |
+          python -c "import json; from pathlib import Path; c=json.loads(Path('configs/g1_data.json').read_text()); c.update(image_size=32,horizon=4,max_frames=20,warmup_frames=10,tasks=c['tasks'][:1],raw_dir='data/g1_generated/ci',prepared_dir='data/prepared/g1_ci',split_rollouts_per_task={'train':1,'val':1,'test':1}); Path('outputs/g1_ci_collect.json').write_text(json.dumps(c))"
+          .venv-fullbody-ci/bin/python scripts/collect_g1_data.py --config outputs/g1_ci_collect.json
+          python -c "import json; from pathlib import Path; c=json.loads(Path('configs/g1_kaggle.json').read_text()); c.update(backend='tiny_bc',device='cpu',precision='fp32',eval_precision='fp32',num_gpus=1,steps=2,warmup_steps=0,eval_every=1,gradient_accumulation=1,num_workers=0,validation_max_samples=2,test_max_samples=2,prepared_dir='data/prepared/g1_ci',output_dir='outputs/g1_tiny_ci'); p=Path(c['output_dir']); p.mkdir(); (p/'run_config.json').write_text(json.dumps(c))"
+          python -m robot_foundry.cli train --config outputs/g1_tiny_ci/run_config.json
+          python scripts/run_g1_vla_sim.py --run g1_tiny_ci --sim-env .venv-fullbody-ci --skip-setup --max-frames 10
+          python -c "import json; from pathlib import Path; p=Path('outputs/g1_eval_g1_tiny_ci_1/report.json'); r=json.loads(p.read_text()); assert r['learned_policy_used'] and r['policy']['optimizer_updates']==2; assert r['teacher_calls_after_initialization']==0; assert r['per_trial'][0]['learned_tokens_executed']>0"

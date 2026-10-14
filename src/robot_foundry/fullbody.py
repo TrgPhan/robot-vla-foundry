@@ -102,7 +102,10 @@ def require_g1_vla_checkpoint(path):
     manifest = read_json(Path(path) / "data_manifest.json")
     if manifest.get("action_convention") == "libero_osc_delta_xyz_axis_angle_gripper_open01":
         raise ValueError("Panda 7D OSC checkpoint cannot control G1. Train on paired G1/SONIC data first.")
-    raise ValueError("This runtime supports SONIC reference tracking; use the official GR00T G1 VLA stack.")
+    raise ValueError(
+        "This script only runs SONIC reference tracking. For trained latent64 G1 policies, "
+        "use scripts/run_g1_vla_sim.py; native GR00T G1 policies use the NVIDIA inference stack."
+    )
 
 
 def rotation_wxyz(quat):
@@ -215,7 +218,12 @@ class SonicController:
             raise ValueError("Nonfinite SONIC prediction")
         return result
 
-    def predict(self, q_mj, dq_mj, quat, ang_vel, motion, frame, playing=True):
+    def decode_token(self, q_mj, dq_mj, quat, ang_vel, token):
+        """Only current proprioception and a supplied 64D token drive the learned decoder."""
+        self.decoder_calls = getattr(self, "decoder_calls", 0) + 1
+        token = np.asarray(token, np.float32)
+        if token.shape != (64,) or not np.isfinite(token).all():
+            raise ValueError("SONIC decoder requires one finite 64D token")
         matrix = rotation_wxyz(quat)
         self.history.append(
             {
@@ -226,6 +234,17 @@ class SonicController:
                 "gravity": matrix.T @ np.array([0.0, 0.0, -1.0]),
             }
         )
+        histories = {}
+        for name, key in zip(self.decoder_names[1:], ["ang", "q", "dq", "action", "gravity"], strict=True):
+            histories[name] = np.concatenate([entry[key] for entry in self.history])
+        histories["token_state"] = token
+        action = self._infer(self.decoder, np.concatenate([histories[n] for n in self.decoder_names]))
+        self.last_action = action.copy()
+        return action
+
+    def encode_reference(self, quat, motion, frame, playing=True):
+        """Teacher labels only: encode an official reference aligned to the live robot heading."""
+        self.reference_encoder_calls = getattr(self, "reference_encoder_calls", 0) + 1
         indices = np.minimum(frame + (np.arange(10) * 5 if playing else 0), len(motion["joint_pos"]) - 1)
         if np.ndim(indices) == 0:
             indices = np.full(10, indices)
@@ -239,13 +258,11 @@ class SonicController:
         terms["motion_anchor_orientation_heading_10frame_step5"] = np.concatenate(
             [(inverse_heading @ rotation_wxyz(motion["body_quat"][i, 0]))[:, :2].ravel() for i in indices]
         )
-        token = self._infer(self.encoder, np.concatenate([terms[n] for n in self.encoder_names]))
-        histories = {}
-        for name, key in zip(self.decoder_names[1:], ["ang", "q", "dq", "action", "gravity"], strict=True):
-            histories[name] = np.concatenate([entry[key] for entry in self.history])
-        histories["token_state"] = token
-        action = self._infer(self.decoder, np.concatenate([histories[n] for n in self.decoder_names]))
-        self.last_action = action.copy()
+        return self._infer(self.encoder, np.concatenate([terms[n] for n in self.encoder_names]))
+
+    def predict(self, q_mj, dq_mj, quat, ang_vel, motion, frame, playing=True):
+        token = self.encode_reference(quat, motion, frame, playing)
+        action = self.decode_token(q_mj, dq_mj, quat, ang_vel, token)
         return action, token
 
 

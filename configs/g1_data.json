@@ -1,0 +1,20 @@
+{
+  "robot": "unitree_g1_sonic_motion29",
+  "collection_version": 1,
+  "action_convention": "g1_sonic_v1_1_latent64",
+  "repo": "vendor/sonic",
+  "assets": "data/models/sonic_mujoco",
+  "raw_dir": "data/g1_generated/v1",
+  "prepared_dir": "data/prepared/g1_vla_v1",
+  "image_size": 256,
+  "stride": 2,
+  "horizon": 20,
+  "seed": 42,
+  "max_frames": 455,
+  "warmup_frames": 25,
+  "split_rollouts_per_task": {"train": 8, "val": 2, "test": 2},
+  "tasks": [
+    {"motion": "walking_quip_360_R_002__A428", "prompt": "Walk and turn around in a circle."},
+    {"motion": "macarena_001__A545", "prompt": "Perform the macarena dance with your whole body."}
+  ]
+}

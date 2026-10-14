@@ -40,7 +40,7 @@ class TinyBackend:
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
         torch.save({"model": self.model.state_dict(), "spec": self.model.spec}, path / "model.pt")
-        write_json(path / "stats.json", read_json(dataset.root / "stats.json"))
+        shutil.copyfile(dataset.root / "stats.json", path / "stats.json")
         write_json(path / "data_manifest.json", dataset.manifest)
 
 
@@ -58,6 +58,21 @@ class SmolBackend:
                 raise ValueError("SmolVLA inference supports CPU or CUDA")
         elif device.type == "cpu" and cfg.get("cpu_smoke_only") and cfg.get("steps", 0) <= 2:
             pass  # Explicit one/two-step API validation, not a CPU training recommendation.
+        elif device.type == "cuda" and cfg.get("small_gpu_smoke_only"):
+            from .g1_schema import validate_g1_manifest
+
+            validate_g1_manifest(dataset.manifest)
+            data_cfg = dataset.manifest["config"]
+            if not (
+                cfg["steps"] <= 2
+                and cfg["batch_size"] == 1
+                and data_cfg["image_size"] <= 96
+                and data_cfg["horizon"] <= 16
+            ):
+                raise ValueError("Small-GPU diagnostics require <=2 steps, batch1, <=96px/H16 G1 data")
+            report = probe([device.index if device.index is not None else torch.cuda.current_device()])
+            if not report["gpus"] or report["gpus"][0]["kernel_error"]:
+                raise RuntimeError("CUDA diagnostic kernel probe failed")
         elif device.type == "cuda":
             require_gpu(
                 "smolvla",
@@ -114,6 +129,19 @@ class SmolBackend:
         self.model = SmolVLAPolicy.from_pretrained(
             pretrained, config=policy_cfg, revision=None if load_path else base["revision"]
         )
+        self.boundary_adaptation = None
+        from .g1_schema import ACTION_CONVENTION, validate_g1_manifest
+
+        if dataset.manifest.get("action_convention") == ACTION_CONVENTION:
+            validate_g1_manifest(dataset.manifest)
+            if not load_path:
+                from .smol_adaptation import adapt_g1_boundaries
+
+                self.boundary_adaptation = adapt_g1_boundaries(self.model)
+            elif policy_cfg.max_state_dim < 70 or policy_cfg.max_action_dim < 64:
+                raise ValueError("G1 checkpoint still has incompatible SmolVLA state/action projections")
+            elif (Path(load_path) / "policy_boundary_adaptation.json").exists():
+                self.boundary_adaptation = read_json(Path(load_path) / "policy_boundary_adaptation.json")
         if inference_only:
             if device.type == "cpu" and cfg.get("precision") != "fp32":
                 raise ValueError("Use FP32 for CPU inference")
@@ -169,8 +197,12 @@ class SmolBackend:
             self.model.config.vlm_model_name = previous_name
         self.preprocessor.save_pretrained(path, config_filename="policy_preprocessor.json")
         self.postprocessor.save_pretrained(path, config_filename="policy_postprocessor.json")
-        write_json(path / "stats.json", read_json(dataset.root / "stats.json"))
+        # Preserve the collector checksum across JSON formatting/OS newline conventions.
+        shutil.copyfile(dataset.root / "stats.json", path / "stats.json")
         write_json(path / "data_manifest.json", dataset.manifest)
+
+        if self.boundary_adaptation:
+            write_json(path / "policy_boundary_adaptation.json", self.boundary_adaptation)
 
 
 def make_backend(cfg, dataset, device, load_path=None):

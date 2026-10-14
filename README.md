@@ -1,144 +1,81 @@
-# Robot Foundry — LeRobot, VLA và hướng mở rộng SONIC
+# Robot Foundry — train VLA toàn thân G1 trên Kaggle
 
-Project nghiên cứu cho tác vụ **gắp vật và đặt vào giỏ**, ưu tiên Kaggle và simulation theo lựa chọn của bạn. Mã nguồn dùng cấu trúc `src/`, `pyproject.toml`, cấu hình JSON, checkpoint có provenance và kiểm thử tự động. Đây là các quy ước tổ chức project Python; project chưa có chứng nhận ISO hoặc kiểm định triển khai robot thực.
+Project hiện ưu tiên **G1 đi bộ/cử động toàn thân**: sinh demonstration đồng bộ trong MuJoCo, fine-tune SmolVLA rồi dùng checkpoint đã train dự đoán token cho SONIC điều khiển 29 DOF. Nhánh Panda/LIBERO gắp vật được giữ riêng. Mã nguồn theo cấu trúc Python `src/`, `pyproject.toml`, JSON configs, provenance/checksums và kiểm thử; project chưa có chứng nhận ISO hay kiểm định robot thực.
 
-**GitHub public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Mở [`notebooks/kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) trong Kaggle, bật Internet + **GPU T4 ×2** và chạy các cell. Notebook tự clone release `kaggle-v2.5`, cài môi trường riêng và tải dữ liệu. Không cần upload source ZIP hoặc GitHub token. Hướng dẫn từng cell và khôi phục lỗi disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+**Repo public:** [TrgPhan/robot-vla-foundry](https://github.com/TrgPhan/robot-vla-foundry). Import [`notebooks/kaggle_g1_train.ipynb`](notebooks/kaggle_g1_train.ipynb) vào Kaggle, bật Internet + **GPU T4 ×2**. [`kaggle_train.ipynb`](notebooks/kaggle_train.ipynb) là bản giống hệt; notebook clone tag **`g1-vla-v1`**, không cần GitHub token. Hướng dẫn: [`docs/KAGGLE.md`](docs/KAGGLE.md).
 
-## Quyết định kiến trúc
+## Pipeline G1 hiện tại
 
-- **Có GPU lớn:** fine-tune **GR00T N1.7** trên LIBERO Object, bổ sung LIBERO Spatial cùng robot Panda; dùng implementation NVIDIA đã khóa commit.
-- **Kaggle GPU khoảng 16 GB:** fine-tune **SmolVLA pretrained** làm nhánh tiết kiệm tài nguyên. Đây là lựa chọn bổ sung do hạn chế phần cứng, không được gọi là GR00T/π₀.₅.
-- **Máy hiện tại RTX A1000 4 GB:** train baseline `tiny_bc` để kiểm tra pipeline; inference FP16 của checkpoint SmolVLA đã lưu cũng chạy được để đánh giá local. TinyBC là CNN + token ngôn ngữ + state + decoder action chunk từ đầu, không phải foundation VLA. Điều kiện VRAM của training SmolVLA vẫn giữ nguyên.
-- **Khi có dữ liệu G1:** GR00T dự đoán 64 token chuyển động và hai vector tay 7 chiều; SONIC v1.1 nhận token để điều khiển toàn thân. Giữ controller pretrained cố định trước khi cân nhắc RL fine-tuning. [Workflow SONIC chính thức](https://nvlabs.github.io/GR00T-WholeBodyControl/tutorials/vla_workflow.html).
+```mermaid
+flowchart LR
+    R[Public G1 motions] --> C[SONIC teacher + MuJoCo collection]
+    C --> D[Paired RGB + state70 + token64]
+    D --> T[Train SmolVLA expert + G1 projections]
+    T --> W[Saved trained checkpoint]
+    O[Live RGB + state70 + language] --> V[Trained VLA inference]
+    W --> V
+    V --> S[Token64 + frozen SONIC decoder]
+    S --> G[29 joint targets + PD + free-base physics]
+    G --> M[Full-body MP4 + metrics]
+```
 
-SONIC không chỉ điều khiển chân. Cân bằng phụ thuộc cả thân trên, tải vật, tiếp xúc và động lực học. Vì vậy ghép action cánh tay Panda/SO100 với action chân G1 không tạo thành một policy humanoid hợp lệ. Chưa có RGB + state + SONIC token đồng bộ thì chưa thể huấn luyện nhánh G1 cho tác vụ này.
+1. Collector chạy controller/physics thật, chụp RGB và state trước action; teacher encoder tạo nhãn token64. Stats chỉ từ train, split theo cả episode/scenario.
+2. SmolVLA giữ VLM frozen, train action expert và ba projections mới cho state70 padded96/action64. SONIC frozen làm controller/prior; không ghép action Panda vào chân G1 hoặc tạo balance loss từ data không có chân.
+3. Learned runner yêu cầu checkpoint có optimizer update thành công và đúng controller/data identity. Sau pose initialization, VLA dùng ảnh/state/lệnh hiện tại; token dự đoán điều khiển SONIC decoder. Reference chỉ dùng chấm metric, không dùng teacher fallback.
+4. Benchmark nội bộ so motion tracking/survival của learned VLA với train-mean token baseline trên cùng held-out scenario seeds. Source primitives vẫn giống train; không gọi đây là unseen-task generalization.
 
-## Đã kiểm chứng trên máy local
+Chi tiết schema/cơ chế: [`docs/G1_TRAINING.md`](docs/G1_TRAINING.md). Tác vụ hiện là walk/turn và macarena; tay/chân/thân đều có joint targets, **ngón tay là mesh cố định, chưa gắp vật**. Muốn pickup/carrying cần paired G1 object-interaction data, scene và hand controller phù hợp.
 
-Xem các báo cáo máy đọc được trong [`reports/`](reports/).
+## Chạy Kaggle T4 ×2
 
-| Kiểm chứng | Kết quả |
+- Bắt đầu `SMOKE=True`, `MICROBATCH=1`, `WORKERS=2`, `GPUS='auto'`. Collector chuẩn bị dữ liệu; bước train sau đó chạy 20 optimizer updates thật.
+- Sau smoke, đổi `SMOKE=False` để train 5.000 bước với tên run `full`. Full effective batch **16 = 2 GPU × microbatch1 × accumulation8**, FP16/GradScaler/DDP; DDP không cộng VRAM hai GPU.
+- Default dataset có hai primitive, mỗi primitive 8 train/2 val/2 test episodes, 256 px/H20. Collection có resume và checksums. Thêm nhiều bản cùng clip không tạo thêm kỹ năng mới.
+- Sau training, notebook nạp `outputs/RUN_NAME/best`, chạy learned full-body simulation và baseline, hiển thị MP4. Infer lỗi được ghi riêng và giữ artifacts train.
+- Giữ checkpoint, `training_state.pt`, prepared data và eval outputs. Cần 6 GiB disk dự phòng sau model staging; export atomic, không tạo ZIP nhân đôi weights mặc định. Resume giữ nguyên config/data/world size.
+
+VRAM/throughput và chất lượng của full recipe chưa được đo trên Kaggle. Microbatch2 chỉ tăng sau smoke mới xác nhận đủ VRAM. Hướng dẫn chạy/resume/disk: [`docs/KAGGLE.md`](docs/KAGGLE.md).
+
+## Đã kiểm chứng
+
+| Kiểm chứng | Kết quả thực đo local |
 |---|---|
-| Dữ liệu thật đã tải và xử lý | 100 episode: 50 Object + 50 Spatial |
-| Split theo cả episode | 60 train / 20 val / 20 test |
-| TinyBC train | 600 optimizer steps; 907.911 tham số |
-| Test normalized RMSE | 0,7728; baseline action trung bình: 0,9894 |
-| Peak VRAM trong lượt train | khoảng 91,5 MiB |
-| LIBERO Object smoke | 0/10, 1 trạng thái khởi đầu/task, 100 bước |
-| SmolVLA pretrained | 1 bước optimizer trên CPU; finite loss; padding mask; export/reload; action `[1,16,7]` |
-| SmolVLA v2 | 2 bước DDP trên hai process CPU, trọng số khớp; 1 bước FP16 GPU local ở 96 px/H16, peak 3.143 MiB |
-| DDP/AMP | Hai process Gloo đồng bộ trọng số; resume chính xác sau khi ngắt; FP16 optimizer + GradScaler trên GPU local |
-| Kiểm thử v2 | 20 test pass local; có xử lý overflow và đối chiếu metric DDP với một process |
+| G1 SmolVLA optimizer | 2 CUDA FP16 updates, 0 AMP skips; 99.988.544 trainable parameters |
+| G1 checkpoint save/reload | State70, action chunk `[16,64]`; giữ head đã train |
+| Diagnostic peak VRAM | 3.141 MiB ở 96 px/H16, batch1; không đại diện recipe 256 px/H20 |
+| Learned G1 full-body inference | 2 held-out scenarios ×3 giây, 29 DOF/free-base; measured teacher calls sau initialization =0 |
+| Motion tracking smoke | Learned 2/2, mean-token baseline cũng 2/2; chưa chứng minh learning gain |
+| Raw data export | Fixed-size `float32[70]` state / `float32[64]` action; 120 frames kiểm tra schema |
+| Python regression suite | 49 tests pass local |
 
-Bảng trên ghi các smoke ban đầu được lưu trong `reports/`. RMSE không phải success rate; kết quả TinyBC chưa đạt yêu cầu thực hiện tác vụ. Các smoke SmolVLA công khai ở [`reports/smolvla_ddp_cpu_smoke.json`](reports/smolvla_ddp_cpu_smoke.json) và [`reports/smolvla_fp16_local_smoke.json`](reports/smolvla_fp16_local_smoke.json) dùng 96 px/H16; không đại diện tốc độ/VRAM của recipe T4 256 px/H50 hoặc full benchmark. Checkpoint và kết quả riêng tải từ Kaggle được giữ trong `outputs/`, không đưa vào source release. GR00T/SONIC chưa được train do thiếu GPU/dữ liệu phù hợp. Notebook hiện tại được kiểm tra cú pháp và các thành phần local; mỗi lượt chạy Kaggle cần được đánh giá bằng report của chính lượt đó.
+Xem [`reports/g1_vla_integration.json`](reports/g1_vla_integration.json). Hai optimizer updates là kiểm chứng tích hợp, chưa phải convergence; latent test RMSE của diagnostic cũng chưa vượt mean-action baseline. Full 5.000-step run chưa hoàn tất ở đây. Checkpoint/results riêng tải từ Kaggle được giữ trong `outputs/`, không đưa vào source release.
 
-## Cấu trúc
+## Chạy local và các nhánh khác
+
+Các lệnh G1 sau khi cài môi trường được ghi tại [`docs/G1_TRAINING.md`](docs/G1_TRAINING.md). Production SmolVLA guard >=14 GiB/GPU; RTX A1000 4 GB chỉ chạy diagnostic <=2 bước ở 96 px/H16 hoặc baseline TinyBC. TinyBC là model nhỏ train từ đầu, không phải foundation VLA.
+
+Demo SONIC reference CPU riêng dùng `python scripts/setup_fullbody_sim.py`, rồi `.venv-fullbody/Scripts/python.exe scripts/run_fullbody_sim.py`. Demo này chỉ kiểm tra controller; learned checkpoint phải dùng `scripts/run_g1_vla_sim.py`. Xem [`docs/FULLBODY.md`](docs/FULLBODY.md).
+
+Nhánh **Panda/LIBERO** còn [`kaggle_panda_train.ipynb`](notebooks/kaggle_panda_train.ipynb), [`docs/KAGGLE_PANDA.md`](docs/KAGGLE_PANDA.md), [`docs/LOCAL_SIM.md`](docs/LOCAL_SIM.md). Checkpoint Panda OSC7 không được dùng điều khiển G1. Historical TinyBC/SmolVLA/DDP smoke nằm trong `reports/`; RMSE không thay thế closed-loop task success.
+
+**GR00T N1.7** và G1 manipulation native64+7+7 vẫn có launcher Linux/GPU lớn ở `configs/groot_libero.json`/`configs/groot_g1.json`. SmolVLA G1 adapter là code riêng của project, không gọi là GR00T/π₀.₅. SONIC điều khiển toàn thân, không chỉ chân; thiết kế và benchmark ở [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
+
+## Cấu trúc và nguồn
 
 ```text
-configs/       dataset/model revisions, local, Kaggle, GR00T recipes
+configs/       data/model revision locks và training recipes
 src/robot_foundry/
-               download, schema checks, video alignment, train, eval, launchers
-scripts/       environment setup, policy server, SONIC plan, packaging
-notebooks/     kaggle_train.ipynb
-tests/         padding, split, video timestamps, resume, transport, native CLI
-docs/          design review, data catalogue, benchmark protocol
-reports/       actual local validation results
-data/          generated raw/prepared/native data; excluded from source archive
-outputs/       checkpoints and experiment logs; excluded from source archive
-vendor/        pinned upstream repos; regenerated by bootstrap
+               collectors, schema, training, checkpoints, inference, simulation
+scripts/       setup, notebook generation, train/eval entrypoints, packaging
+notebooks/     G1 primary notebook và Panda alternative
+tests/         split/padding, optimizer/resume/DDP, transport, G1 control
+docs/          cơ chế, data catalogue, benchmark và hướng dẫn
+reports/       validation thực đo công khai
+data/          raw/prepared/assets — không đưa vào Git
+outputs/       checkpoints, videos, experiment logs — không đưa vào Git
+vendor/        pinned upstream repositories — bootstrap riêng
 ```
 
-## Chạy local ngay
+Nguồn G1: [NVIDIA motion clips](https://github.com/NVlabs/GR00T-WholeBodyControl/tree/b042411fae38ee4d1af9aac82a37a1f8d14d6dd0/gear_sonic_deploy/reference/example), [SONIC v1.1](https://huggingface.co/nvidia/GEAR-SONIC/tree/6733128a3d8a523b1418b06bca3cdf61c8b0987f/sonic_v1_1), [SmolVLA pretrained](https://huggingface.co/lerobot/smolvla_base). Dữ liệu task là simulation-generated từ các nguồn đó, không phải teleop G1 thật. Catalogue dataset Panda và nguồn bổ sung: [`docs/DATASETS.md`](docs/DATASETS.md).
 
-Trong PowerShell, đứng tại thư mục project:
-
-```powershell
-python -m pip install -e ".[dev]"
-python -m robot_foundry.cli doctor
-python -m pytest -q
-python -m robot_foundry.cli prepare --config configs/local.json
-python -m robot_foundry.cli train --config configs/local.json
-```
-
-Máy này đã có run tại `outputs/local_tiny_bc`. Để tiếp tục run đang dở, thêm `--resume`; để chạy experiment mới, đổi `output_dir` trong bản sao config. Resume yêu cầu giữ nguyên config và fingerprint dữ liệu. Một run đã hoàn tất trả lại report cũ, không ghi đè thông số thời gian/VRAM.
-
-Local chuẩn hóa bằng thống kê **chỉ từ train**, video lấy theo PTS, action chunk không đi qua ranh giới episode và padding không tham gia loss. Cấu hình mặc định lấy 5 episode/task; `episodes_per_task: null` dùng toàn bộ episode có sẵn.
-
-## Chạy Kaggle
-
-1. Tải/import [`notebooks/kaggle_train.ipynb`](https://github.com/TrgPhan/robot-vla-foundry/blob/main/notebooks/kaggle_train.ipynb) vào một Kaggle Notebook.
-2. Bật Internet và **GPU T4 ×2**; cell đầu tự clone repo public vào `/kaggle/working/robot-vla-foundry`.
-3. Chạy `SMOKE=True` trước, sau đó dùng `SMOKE=False` và một output directory mới. Giữ `FULL_DATA=False` cho lượt đầu; bật `True` khi đã kiểm tra đủ disk và thời gian chuẩn bị toàn bộ dữ liệu.
-4. Giữ cả thư mục output và prepared data của run trong Kaggle Output. ZIP mặc định tắt để tránh nhân đôi dung lượng; có thể bật `SAVE_RESULTS_ZIP`/`SAVE_RESUME_DATA` khi đủ disk. Archive chỉ chứa run hiện tại và kiểm tra disk trước khi ghi. Checkpoint chứa model, optimizer, scheduler, scaler và RNG để resume.
-
-Notebook tạo Python 3.12 riêng, PyTorch CUDA 11.8 mặc định, LeRobot khóa commit và stats train-only. Recipe `kaggle_t4x2.json` dùng DDP một process/GPU, FP16 autocast + GradScaler, fused AdamW và prefetch dữ liệu. Full training giữ effective batch **16 = 2 GPU × microbatch 1 × accumulation 8**; một GPU dùng accumulation 16. SmolVLA giữ VLM frozen và train action expert/state projection. Cache PNG lossless đọc đúng frame cần dùng, tránh giải nén toàn episode cho từng sample. Từ v2.1, mỗi NPZ được so sánh pixel/nhãn với cache rồi bỏ bản trùng; full-frame statistics inputs và fingerprint vẫn giữ. Có thể giữ NPZ bằng `--keep-npz`. Checkpoint lưu RNG từng rank và scaler; validation/test được chia không trùng sample. [DDP PyTorch](https://docs.pytorch.org/docs/2.7/generated/torch.nn.parallel.DistributedDataParallel.html), [AMP PyTorch](https://docs.pytorch.org/docs/2.7/amp.html).
-
-V2.1 kiểm tra ít nhất 6 GiB disk trống sau khi stage SmolVLA, và kiểm tra ngân sách tensor/optimizer trước mỗi lần lưu. Model `best` được export vào thư mục tạm rồi thay thế; ghi thất bại giữ bản `best`/optimizer checkpoint cũ và dọn phần ghi dở. Lỗi `No space left on device` xử lý bằng `scripts/recover_kaggle.py`, dùng nguyên config/data fingerprint đã lưu; xem hướng dẫn migration trong `docs/KAGGLE.md`.
-
-Smoke ghi throughput và peak VRAM từng GPU. Chỉ tăng `MICROBATCH=2` sau khi smoke mới xác nhận đủ VRAM; full recipe tự giảm accumulation để giữ batch 16. Dùng `--mode benchmark --gpus 1` và `--gpus 2` với tên khác nhau để đo tốc độ trên cùng effective batch. Tốc độ T4 ×2 chưa được đo trên Kaggle; không suy ra mức tăng 2×. CUDA wheel được chọn riêng với `--torch-index`; nếu OOM với microbatch 1, chuyển GPU lớn hơn hoặc tạo recipe/dataset mới có resolution thấp hơn. [Các wheel PyTorch chính thức](https://pytorch.org/get-started/previous-versions/).
-
-Không giả định tài khoản Kaggle luôn được cấp cùng GPU hay thời lượng. Script `doctor` kiểm tra thiết bị thật. Profile GR00T ở đây yêu cầu Linux, Python 3.12 và khoảng 40 GB VRAM mỗi GPU theo hướng dẫn reference; DDP không cộng VRAM của hai T4. [Hardware guide NVIDIA](https://github.com/NVIDIA/Isaac-GR00T/blob/main/getting_started/hardware_recommendation.md).
-
-## Simulation local
-
-Tách môi trường LIBERO/Robosuite dùng NumPy 1.26 khỏi môi trường VLA dùng NumPy 2.x:
-
-```powershell
-python -m pip install uv
-python scripts/setup_sim.py --env .venv-sim-local --python 3.12
-.venv-sim-local/Scripts/python.exe -m robot_foundry.cli eval-libero --checkpoint outputs/local_tiny_bc/best --suite libero_object --episodes-per-task 1 --max-steps 300 --output outputs/libero_quick
-```
-
-Script mặc định cài PyTorch CPU và NumPy 1.26 trong **venv riêng**, kiểm tra 4 GiB disk dự phòng trước khi cài. Hai lỗi dependency Windows được sửa trong venv: vị trí `mujoco.dll` và lựa chọn OpenGL của Robosuite. Không cần sửa checkout LIBERO hoặc xóa cấu hình `~/.libero` của bạn. Máy này đã có môi trường kiểm chứng `.venv-sim-312`; có thể dùng Python trong môi trường đó trực tiếp.
-
-Trên Kaggle, `scripts/run_kaggle_sim.py --run TEN_RUN --trials 1` đánh giá checkpoint đã lưu, dùng môi trường CPU cho simulator và policy server GPU trong môi trường train. Lỗi simulation được ghi riêng; notebook vẫn tiếp tục lưu kết quả train. Cách khôi phục lỗi cài `.venv-sim` vì hết disk nằm trong [`docs/KAGGLE.md`](docs/KAGGLE.md).
-
-SmolVLA chạy trong môi trường train; simulation gọi policy server trên `127.0.0.1`, như các cell của notebook. Server chỉ phục vụ mô phỏng, không gửi lệnh tới robot. Chi tiết đánh giá và gripper convention ở [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
-
-Để **tải model đã train từ Kaggle và chạy simulation trên máy**, xem [`docs/LOCAL_SIM.md`](docs/LOCAL_SIM.md). `scripts/download_kaggle_run.py` tải policy/run metadata theo version, kiểm tra SHA-256 và khôi phục tokenizer đúng revision; không tải các Python environment trong output. Thêm `--record-video` vào lệnh `run_kaggle_sim.py` để lưu MP4 hai camera cho từng lượt; notebook có tùy chọn `RECORD_VIDEO` tương ứng. Một simulation hoàn tất vẫn có thể có 0% success.
-
-## G1/SONIC full-body local
-
-Để xem **G1 full body chạy thật trên máy local**, dùng nhánh SONIC ONNX/MuJoCo độc lập:
-
-```powershell
-python scripts/setup_fullbody_sim.py
-.venv-fullbody/Scripts/python.exe scripts/run_fullbody_sim.py --output outputs/g1_sonic_fullbody
-```
-
-Lượt local đã chạy 9,6 giây trên G1 free-base, không dùng elastic band, có video toàn thân và telemetry. Đây là SONIC pretrained theo motion tham chiếu; VLA Kaggle Panda chưa điều khiển G1. Xem [`docs/FULLBODY.md`](docs/FULLBODY.md) và [`reports/fullbody_sonic_smoke.json`](reports/fullbody_sonic_smoke.json). Profile ONNX chạy CPU, không cần GPU train. Muốn humanoid gắp vật cần paired G1 data, hand controller và checkpoint VLA đúng embodiment.
-
-## GR00T N1.7 trên Linux GPU lớn
-
-Chuẩn bị dữ liệu và checkout trước:
-
-```bash
-python -m robot_foundry.cli bootstrap --repos groot
-python -m robot_foundry.cli export-groot --prepared data/prepared/local --output data/native/libero
-python -m robot_foundry.cli train-groot --config configs/groot_libero.json --dry-run
-```
-
-Export chỉ sử dụng các episode đã chọn; train/val/test nằm riêng. Nó đánh lại episode/index liên tục, chuyển video sang H.264 và tạo `stats.json`, `modality.json`, provenance. Statistics của val/test cũng là statistics **train**, không tính lại từ holdout.
-
-Trong máy Linux thích hợp, cài môi trường chính thức ở checkout đã khóa:
-
-```bash
-cd vendor/groot
-uv sync --python 3.12
-cd ../..
-uv pip install --python vendor/groot/.venv/bin/python --no-deps -e .
-uv pip install --python vendor/groot/.venv/bin/python av==15.1.0
-vendor/groot/.venv/bin/python -m robot_foundry.cli train-groot --config configs/groot_libero.json
-```
-
-Cần FFmpeg 4–7 cho reference `torchcodec`, GPU/driver tương thích CUDA 12.8 và quyền truy cập backbone Cosmos-Reason2 trên Hugging Face. Model GR00T và dataset được khóa revision; backbone Cosmos được reference loader resolve theo cơ chế upstream, không phải mọi dependency bắc cầu đều đã khóa bởi wrapper này. Lưu `pip freeze`/`uv.lock` và launch plan cùng run. [Cài đặt NVIDIA](https://github.com/NVIDIA/Isaac-GR00T#installation).
-
-Không bật LoRA N1.7 bằng flag của N1.5. Nhánh hiện tại fine-tune projector/action head theo reference, giữ language/vision backbone frozen. `global_batch_size=4`, accumulation 8 cho effective batch 32 là **recipe khởi đầu**, không phải cấu hình tái lập số liệu công bố trên 8 GPU. Tham khảo [`docs/BENCHMARK.md`](docs/BENCHMARK.md) để dùng checkpoint trong benchmark chính thức.
-
-## Hướng G1 + SONIC
-
-Xem [`docs/DESIGN.md`](docs/DESIGN.md). Có `configs/groot_g1.json`, `validate-g1` và `scripts/sonic_plan.py`; cần dữ liệu thật hoặc sim tương tác vật thể đã ghi bằng controller G1 phù hợp. BONES-SEED cung cấp motion prior, không thay thế demonstration RGB + grasp/contact/action của nhiệm vụ.
-
-## Mã nguồn và dữ liệu
-
-Mã mới của project theo MIT. Upstream, pretrained weights và dataset giữ license của từng nguồn. Registry ghi `null` khi dataset card không công bố license; không tự gán license cho bản chuyển đổi đó. Source archive không đóng gói lại dataset hay model NVIDIA. Xem [`docs/DATASETS.md`](docs/DATASETS.md).
+Mã mới theo MIT; upstream, pretrained weights và datasets giữ license từng nguồn. Source archive không đóng gói datasets/model NVIDIA. Registry giữ `null` nếu dataset card không công bố license.

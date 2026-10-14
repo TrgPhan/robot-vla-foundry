@@ -33,7 +33,12 @@ class EpisodesDataset(Dataset):
         self.cache_size = cache_size
         self.packed = packed
         self.cache = OrderedDict()
-        stats = read_json(self.root / "stats.json")
+        if self.manifest.get("action_convention") == "g1_sonic_v1_1_latent64":
+            from .g1_schema import load_g1_statistics
+
+            stats = load_g1_statistics(self.root, self.manifest)
+        else:
+            stats = read_json(self.root / "stats.json")
         self.state_mean = np.asarray(stats["observation.state"]["mean"], np.float32)
         self.state_std = np.asarray(stats["observation.state"]["std"], np.float32)
         self.action_mean = np.asarray(stats["action"]["mean"], np.float32)

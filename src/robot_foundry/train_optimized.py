@@ -205,6 +205,15 @@ def run_training(cfg, runtime, resume):
         for s in ["train", "val", "test"]
     }
     dataset = datasets["train"]
+    from .g1_schema import ACTION_CONVENTION, validate_g1_manifest
+
+    if (
+        cfg.get("action_convention") == ACTION_CONVENTION
+        and dataset.manifest.get("action_convention") != ACTION_CONVENTION
+    ):
+        raise ValueError("G1 recipe and prepared action convention differ")
+    if dataset.manifest.get("action_convention") == ACTION_CONVENTION:
+        validate_g1_manifest(dataset.manifest)
     backend = make_backend(cfg, dataset, device)
     model = backend.model
     trainable = [p for p in model.parameters() if p.requires_grad]
@@ -449,6 +458,10 @@ def run_training(cfg, runtime, resume):
     )
     report = {
         "backend": cfg["backend"],
+        "embodiment": dataset.manifest["signature"].get("robot_type"),
+        "action_dimension": len(dataset.action_std),
+        "action_convention": dataset.manifest.get("action_convention"),
+        "controller_identity": dataset.manifest.get("controller_identity"),
         "engine": "ddp_amp_v2",
         "world_size": runtime.world_size,
         "precision": precision,

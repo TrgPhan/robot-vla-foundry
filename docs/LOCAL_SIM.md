@@ -1,5 +1,7 @@
 # Tải checkpoint Kaggle và chạy simulation local
 
+Hướng dẫn LIBERO bên dưới dành cho **Panda**. G1 full-body checkpoint mới dùng `scripts/run_g1_vla_sim.py`; xem [`G1_TRAINING.md`](G1_TRAINING.md). Phần setup môi trường VLA ở đây vẫn dùng được cho G1, còn simulator G1 dùng `.venv-fullbody` riêng.
+
 Không cần train lại để đánh giá model đã lưu. Pipeline tải policy và metadata của một run, rồi chạy SmolVLA trong môi trường VLA; LIBERO chạy trong môi trường CPU/NumPy 1.26 riêng và gọi policy qua localhost.
 
 ## 1. Môi trường VLA và quyền truy cập Kaggle
@@ -38,7 +40,7 @@ Output gồm model đã train, config, train-only stats, data manifest, processo
 .venv-vla/Scripts/python.exe scripts/run_kaggle_sim.py --run RUN_NAME --trials 1 --suite libero_object --record-video
 ```
 
-Lần đầu script cài `.venv-sim-cpu`; installer cần dự phòng 4 GiB disk. Nếu môi trường đã cài xong, thêm `--skip-setup`; có thể chọn venv khác nằm trong project bằng `--sim-env TEN_VENV`. Linux dùng đường dẫn `.venv-vla/bin/python` và cần thư viện render EGL/OpenGL theo [`KAGGLE.md`](KAGGLE.md).
+Lần đầu script cài `.venv-sim-cpu`; installer cần dự phòng 4 GiB disk. Nếu môi trường đã cài xong, thêm `--skip-setup`; có thể chọn venv khác nằm trong project bằng `--sim-env TEN_VENV`. Linux dùng đường dẫn `.venv-vla/bin/python` và cần thư viện render EGL/OpenGL theo [`KAGGLE_PANDA.md`](KAGGLE_PANDA.md).
 
 SmolVLA inference đóng băng toàn bộ tham số và dùng FP16 trên CUDA. Chế độ này đã chạy được với checkpoint H50/256 px trên RTX A1000 Laptop 4 GB; dung lượng thực tế còn phụ thuộc model, input và các process đang dùng GPU. Điều kiện tối thiểu 14 GiB của profile **training** vẫn giữ nguyên. Inference không tạo optimizer hoặc gradient. Khi gọi `scripts/policy_server.py` trực tiếp, `--device cpu --precision fp32` cho phép inference CPU; runner tự động ở trên ưu tiên GPU và precision đã lưu trong run config.
 
